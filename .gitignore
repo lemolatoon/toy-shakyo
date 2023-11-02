@@ -1,0 +1,4 @@
+/build
+/buildTest
+/.cache
+/vcpkg_installed

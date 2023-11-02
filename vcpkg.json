@@ -1,0 +1,10 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+    "name": "my-cpp-project",
+    "version": "0.0.1",
+    "builtin-baseline": "486a4640db740f5994e492eb60748111dfc48de7",
+    "description": "C++ template project",
+    "dependencies": [
+        { "name": "gtest", "version>=": "1.14.0"}
+    ]
+}

@@ -1,0 +1,7 @@
+{
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "xaver.clang-format",
+  "editor.tabSize": 2,
+  "C_Cpp.intelliSenseEngine": "Disabled"
+}
