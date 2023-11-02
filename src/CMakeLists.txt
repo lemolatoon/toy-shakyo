@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 add_subdirectory(lib)
 
-add_executable(a.out main.cpp)
+add_executable(a.out toyc.cpp)
 target_link_libraries(a.out mylib)
 
 ##=== LLVM ===##
