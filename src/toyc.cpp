@@ -1,5 +1,6 @@
 #include "lib/hello.h"
 #include "toy/lexer.h"
+#include "toy/parser.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
