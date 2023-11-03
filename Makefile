@@ -5,8 +5,8 @@ CLANG_FORMAT=clang-format-14
 LLVM_CMAKE_DIR=$(shell llvm-config-16 --cmakedir)
 MLIR_CMAKE_DIR=$(shell llvm-config-16 --prefix)/lib/cmake/mlir
 CMAKE_ARGS+=-DCMAKE_TOOLCHAIN_FILE=$(VCPKG_ROOT)/scripts/buildsystems/vcpkg.cmake \
--DLLVM_DIR=$(LLVM_CMAKE_DIR) \
--DMLIR_DIR=$(MLIR_CMAKE_DIR)
+-DOVERWRITE_LLVM_DIR=$(LLVM_CMAKE_DIR) \
+-DOVERWRITE_MLIR_DIR=$(MLIR_CMAKE_DIR)
 
 configure: FORCE
 	cmake -GNinja -S . -B build $(CMAKE_ARGS) $(CMAKE_EXTRA_ARGS)
