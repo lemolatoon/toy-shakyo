@@ -1,4 +1,5 @@
 #include "lib/hello.h"
+#include "toy/AST.h"
 #include "toy/lexer.h"
 #include "toy/parser.h"
 #include "llvm/IR/Constants.h"
@@ -10,67 +11,39 @@
 #include <memory>
 #include <vector>
 
-static std::unique_ptr<llvm::LLVMContext> the_context;
-static std::unique_ptr<llvm::Module> the_module;
-static std::unique_ptr<llvm::IRBuilder<>> builder;
-
 int main() {
-  // Initialize Module
-  the_context = std::make_unique<llvm::LLVMContext>();
-  the_module = std::make_unique<llvm::Module>("my cool jit", *the_context);
+  std::string_view toySource = R"(
+# User defined generic function that operates on unknown shaped arguments.
+def multiply_transpose(a, b) {
+  return transpose(a) * transpose(b);
+}
 
-  builder = std::make_unique<llvm::IRBuilder<>>(*the_context);
+def main() {
+  # Define a variable `a` with shape <2, 3>, initialized with the literal value.
+  var a = [[1, 2, 3], [4, 5, 6]];
+  var b<2, 3> = [1, 2, 3, 4, 5, 6];
 
-  // main function
-  //   auto sub_function = llvm::Function::Create(
-  //       llvm::FunctionType::get(
-  //           llvm::Type::getDoubleTy(*the_context),
-  //           std::vector<llvm::Type *>{llvm::Type::getDoubleTy(*the_context)},
-  //           false),
-  //       llvm::Function::ExternalLinkage, "sub", the_module.get());
+  # This call will specialize `multiply_transpose` with <2, 3> for both
+  # arguments and deduce a return type of <3, 2> in initialization of `c`.
+  var c = multiply_transpose(a, b);
 
-  //   sub_function->arg_begin()->setName("first_arg");
+  # A second call to `multiply_transpose` with <2, 3> for both arguments will
+  # reuse the previously specialized and inferred version and return <3, 2>.
+  var d = multiply_transpose(b, a);
 
-  //   auto basic_block =
-  //       llvm::BasicBlock::Create(*the_context, "entry", sub_function);
-  //   builder->SetInsertPoint(basic_block);
+  # A new call with <3, 2> (instead of <2, 3>) for both dimensions will
+  # trigger another specialization of `multiply_transpose`.
+  var e = multiply_transpose(c, d);
 
-  //   auto val1 = llvm::ConstantFP::get(*the_context, llvm::APFloat(1.0));
-  //   auto val3 = llvm::ConstantFP::get(*the_context, llvm::APFloat(3.0));
+  # Finally, calling into `multiply_transpose` with incompatible shapes
+  # (<2, 3> and <3, 2>) will trigger a shape inference error.
+  var f = multiply_transpose(a, c);
+}
+)";
 
-  //   auto lhs = builder->CreateFMul(val1, sub_function->arg_begin(),
-  //   "multmp"); auto ret_val = builder->CreateFAdd(lhs, val3, "addtmp");
-  //   builder->CreateRet(ret_val);
-
-  //   llvm::verifyFunction(*sub_function);
-
-  // ここから main 関数
-
-  // declare printf function
-  auto printf_type = llvm::FunctionType::get(
-      llvm::Type::getInt32Ty(*the_context),
-      std::vector<llvm::Type *>{llvm::Type::getInt8PtrTy(*the_context)}, true);
-  auto printf_func = llvm::Function::Create(
-      printf_type, llvm::Function::ExternalLinkage, "printf", the_module.get());
-
-  // main function
-  auto main_function = llvm::Function::Create(
-      llvm::FunctionType::get(llvm::Type::getInt32Ty(*the_context),
-                              std::vector<llvm::Type *>{}, false),
-      llvm::Function::ExternalLinkage, "main", the_module.get());
-
-  auto basic_block2 =
-      llvm::BasicBlock::Create(*the_context, "entry", main_function);
-  builder->SetInsertPoint(basic_block2);
-
-  auto hello_str = builder->CreateGlobalStringPtr("hello world!\n");
-  builder->CreateCall(printf_func, hello_str);
-  auto ret_val2 = llvm::ConstantInt::get(*the_context, llvm::APInt(32, 42));
-  builder->CreateRet(ret_val2);
-
-  llvm::verifyFunction(*main_function);
-
-  the_module->print(llvm::errs(), nullptr);
-
+  auto lexer = LexerBuffer(toySource.begin(), toySource.end(), "sample.toy");
+  auto parser = Parser(lexer);
+  auto module = parser.parserModule();
+  toy::dump(*module);
   return 0;
 }
