@@ -1,4 +1,3 @@
-#include "lib/hello.h"
 #include "toy/AST.h"
 #include "toy/lexer.h"
 #include "toy/parser.h"

@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 
-add_subdirectory(lib)
 add_subdirectory(parser)
 
 add_executable(a.out toyc.cpp)
-target_link_libraries(a.out mylib parser)
+target_link_libraries(a.out parser)
 
 ##=== LLVM ===##
 find_package(LLVM REQUIRED CONFIG)
