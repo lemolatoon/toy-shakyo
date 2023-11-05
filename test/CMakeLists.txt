@@ -6,6 +6,7 @@ find_package(GTest CONFIG REQUIRED)
 add_executable(googleTest 
   lib_test.cpp
   lexer_test.cpp
+  parser_test.cpp
 )
 
 target_link_libraries(googleTest GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)

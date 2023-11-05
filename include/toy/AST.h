@@ -426,8 +426,8 @@ template <typename F> void ASTDumper<F>::dump(ModuleAST *node) {
 namespace toy {
 /// Public API for dumping AST
 void dump(ModuleAST &module);
-template <typename F> void dump(F streamer, ModuleAST &module) {
-  ASTDumper(streamer).dump(module);
+template <typename F> void dump_s(F streamer, ModuleAST &module) {
+  ASTDumper(streamer).dump(&module);
 }
 } // namespace toy
 
