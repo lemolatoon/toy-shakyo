@@ -38,12 +38,19 @@ def main() {
   # Finally, calling into `multiply_transpose` with incompatible shapes
   # (<2, 3> and <3, 2>) will trigger a shape inference error.
   var f = multiply_transpose(a, c);
+
+  print(f);
 }
 )";
 
-  auto lexer = LexerBuffer(toySource.begin(), toySource.end(), "sample.toy");
+  auto lexer =
+      LexerBuffer(toySource.begin(), toySource.end() - 1, "sample.toy");
   auto parser = Parser(lexer);
   auto module = parser.parserModule();
+  if (!module) {
+    std::cerr << "Failed to parse sample.toy" << std::endl;
+    return 1;
+  }
   toy::dump(*module);
   return 0;
 }

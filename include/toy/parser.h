@@ -354,6 +354,7 @@ private:
                                         "after 'var' declaration");
 
     std::string ident(lexer.getIdent());
+    lexer.getNextToken(); // eat identifier
 
     std::unique_ptr<VarType> type; // Type is optional, it can be inferred
     if (lexer.getCurToken() == '<') {
@@ -431,6 +432,7 @@ private:
 
     if (lexer.getCurToken() != tok_def)
       return parseError<PrototypeAST>("def", "in prototype");
+    lexer.consume(tok_def);
 
     if (lexer.getCurToken() != tok_identifier)
       return parseError<PrototypeAST>("function name", "in prototype");
