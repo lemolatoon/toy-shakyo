@@ -1,4 +1,6 @@
+#include "mlir/IR/MLIRContext.h"
 #include "toy/AST.h"
+#include "toy/dialect.h"
 #include "toy/lexer.h"
 #include "toy/parser.h"
 #include "llvm/IR/Constants.h"
@@ -51,5 +53,8 @@ def main() {
     return 1;
   }
   toy::dump(*module);
+
+  mlir::MLIRContext context;
+  context.getOrLoadDialect<toy::ToyDialect>();
   return 0;
 }

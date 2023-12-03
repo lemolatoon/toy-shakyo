@@ -1,7 +1,10 @@
 .PHONY: configure build run test clean FORCE
 	
 CLANG_FORMAT=clang-format-14
+MLIR_TBLGEN=mlir-tblgen-16
 
+LLVM_DIR=$(shell llvm-config-16 --prefix)
+MLIR_INCLUDE_DIR=$(LLVM_DIR)/include/
 LLVM_CMAKE_DIR=$(shell llvm-config-16 --cmakedir)
 MLIR_CMAKE_DIR=$(shell llvm-config-16 --prefix)/lib/cmake/mlir
 CMAKE_ARGS+=-DCMAKE_TOOLCHAIN_FILE=$(VCPKG_ROOT)/scripts/buildsystems/vcpkg.cmake \
@@ -10,6 +13,10 @@ CMAKE_ARGS+=-DCMAKE_TOOLCHAIN_FILE=$(VCPKG_ROOT)/scripts/buildsystems/vcpkg.cmak
 
 configure: FORCE
 	cmake -GNinja -S . -B build $(CMAKE_ARGS) $(CMAKE_EXTRA_ARGS)
+
+gen: FORCE
+	$(MLIR_TBLGEN) -gen-dialect-decls include/toy/ops.td -I $(MLIR_INCLUDE_DIR) > include/toy/dialect.h.inc
+	$(MLIR_TBLGEN) -gen-dialect-defs include/toy/ops.td -I $(MLIR_INCLUDE_DIR) > include/toy/dialect.cpp.inc
 
 build:
 	ninja -C build
