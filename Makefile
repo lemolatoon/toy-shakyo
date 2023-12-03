@@ -17,6 +17,8 @@ configure: FORCE
 gen: FORCE
 	$(MLIR_TBLGEN) -gen-dialect-decls include/toy/ops.td -I $(MLIR_INCLUDE_DIR) > include/toy/dialect.h.inc
 	$(MLIR_TBLGEN) -gen-dialect-defs include/toy/ops.td -I $(MLIR_INCLUDE_DIR) > include/toy/dialect.cpp.inc
+	$(MLIR_TBLGEN) -gen-op-decls include/toy/ops.td -I $(MLIR_INCLUDE_DIR) > include/toy/ops.h.inc
+	$(MLIR_TBLGEN) -gen-op-defs include/toy/ops.td -I $(MLIR_INCLUDE_DIR) > include/toy/ops.cpp.inc
 
 build:
 	ninja -C build

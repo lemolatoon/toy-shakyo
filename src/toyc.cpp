@@ -1,4 +1,6 @@
-#include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/Builders.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Location.h"
 #include "toy/AST.h"
 #include "toy/dialect.h"
 #include "toy/lexer.h"
@@ -9,6 +11,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 #include <iostream>
+#include <llvm-16/llvm/ADT/ArrayRef.h>
 #include <memory>
 #include <vector>
 
@@ -56,5 +59,13 @@ def main() {
 
   mlir::MLIRContext context;
   context.getOrLoadDialect<toy::ToyDialect>();
+  auto builder = mlir::OpBuilder(&context);
+  auto theModule = mlir::ModuleOp::create(builder.getUnknownLoc());
+
+  auto dataType = mlir::RankedTensorType::get({1, 2, 3}, builder.getF64Type());
+  auto dataAttribute = mlir::DenseElementsAttr::get(
+      dataType, llvm::ArrayRef({1.0, 2.0, 3.0, 4.0, 5.0, 6.0}));
+  builder.create<ConstantOp>(builder.getUnknownLoc(), dataType, dataAttribute);
+  theModule.print(llvm::errs());
   return 0;
 }
