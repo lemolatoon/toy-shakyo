@@ -1,16 +1,28 @@
 cmake_minimum_required(VERSION 3.16)
 
+
 find_package(GTest CONFIG REQUIRED)
 
 add_executable(googleTest 
-  lib_test.cpp
+  lexer_test.cpp
+  parser_test.cpp
+  ast_snap_test.cpp
 )
 
 target_link_libraries(googleTest GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
 
 # internal
-target_link_libraries(googleTest mylib)
+target_link_libraries(googleTest parser)
 
 target_include_directories(googleTest PUBLIC ${PROJECT_SOURCE_DIR}/include)
+
+# external libraries
+
+##=== LLVM ===##
+target_include_directories(googleTest PRIVATE ${LLVM_INCLUDE_DIRS})
+target_link_directories(googleTest PRIVATE ${LLVM_LIBRARY_DIRS})
+target_link_libraries(googleTest LLVM-16)
+
+##=== MLIR ===##
 
 enable_testing()

@@ -14,9 +14,41 @@ if(NOT DEFINED VCPKG_TARGET_TRIPLET AND DEFINED ENV{VCPKG_DEFAULT_TRIPLET})
     set(VCPKG_TARGET_TRIPLET "$ENV{VCPKG_DEFAULT_TRIPLET}")
 endif()
 
+# LLVM_DIR が無指定なら、llvm-config-16 で設定.
+if(NOT DEFINED OVERWRITE_LLVM_DIR)
+    find_program(LLVM_CONFIG_EXECUTABLE NAMES llvm-config-16 llvm-config)
+    if(LLVM_CONFIG_EXECUTABLE)
+        execute_process(COMMAND ${LLVM_CONFIG_EXECUTABLE} --cmakedir OUTPUT_VARIABLE LLVM_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+        message(STATUS "Set LLVM_DIR: ${LLVM_DIR}")
+    else()
+        message(FATAL_ERROR "llvm-config-16 not found")
+    endif()
+else()
+    set(LLVM_DIR "${OVERWRITE_LLVM_DIR}")
+    message(STATUS "Overwritten LLVM_DIR: ${LLVM_DIR}")
+endif()
+
+# MLIR_DIR が無指定なら、llvm-config-16 で設定.
+if(NOT DEFINED OVERWRITE_MLIR_DIR)
+    find_program(LLVM_CONFIG_EXECUTABLE NAMES llvm-config-16 llvm-config)
+    if(LLVM_CONFIG_EXECUTABLE)
+        execute_process(COMMAND ${LLVM_CONFIG_EXECUTABLE} --prefix OUTPUT_VARIABLE MLIR_DIR_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
+        set(MLIR_DIR "${MLIR_DIR_PREFIX}/lib/cmake/mlir")
+        message(STATUS "Set MLIR_DIR: ${MLIR_DIR}")
+    else()
+        message(FATAL_ERROR "llvm-config-16 not found")
+    endif()
+else()
+    set(MLIR_DIR "${OVERWRITE_MLIR_DIR}")
+    message(STATUS "Overwritten MLIR_DIR: ${MLIR_DIR}")
+endif()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(my-cpp-project CXX C)
+
+find_package(LLVM REQUIRED CONFIG)
+find_package(MLIR REQUIRED CONFIG)
 
 add_subdirectory(test)
 add_subdirectory(src)

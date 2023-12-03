@@ -23,5 +23,5 @@ $ llvm-config-16 --version
 $ apt list | grep mlir
 libmlir-16/unknown 1:16.0.6~++20230710042046+7cbf1a259152-1~exp1~20230710162136.105 amd64
 mlir-16-tools/unknown 1:16.0.6~++20230710042046+7cbf1a259152-1~exp1~20230710162136.105 amd64
-$ sudo apt install libmlir-16 mlir-16-tools
+$ sudo apt install libmlir-16-dev mlir-16-tools
 ```
