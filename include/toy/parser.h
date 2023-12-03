@@ -60,7 +60,7 @@ public:
   Parser(Lexer &lexer) : lexer(lexer) {}
 
   /// module ::= definition*
-  std::unique_ptr<ModuleAST> parserModule() {
+  std::unique_ptr<ModuleAST> parseModule() {
     lexer.getNextToken(); // get first token to lexer's buffer
 
     std::vector<FunctionAST> functions;

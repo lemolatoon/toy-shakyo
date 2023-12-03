@@ -40,7 +40,7 @@ def main() {
   auto lexer =
       LexerBuffer(toySource.begin(), toySource.end() - 1, "sample.toy");
   auto parser = Parser(lexer);
-  auto module = parser.parserModule();
+  auto module = parser.parseModule();
   // Failed to parse sample.toy if module is nullptr.
   ASSERT_TRUE(module);
 

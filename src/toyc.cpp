@@ -45,7 +45,7 @@ def main() {
   auto lexer =
       LexerBuffer(toySource.begin(), toySource.end() - 1, "sample.toy");
   auto parser = Parser(lexer);
-  auto module = parser.parserModule();
+  auto module = parser.parseModule();
   if (!module) {
     std::cerr << "Failed to parse sample.toy" << std::endl;
     return 1;
