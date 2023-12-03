@@ -24,7 +24,7 @@ if(NOT DEFINED OVERWRITE_LLVM_DIR)
         message(FATAL_ERROR "llvm-config-16 not found")
     endif()
 else()
-    set(LLVM_DIR "${OVERWRITE_LLVM}")
+    set(LLVM_DIR "${OVERWRITE_LLVM_DIR}")
     message(STATUS "Overwritten LLVM_DIR: ${LLVM_DIR}")
 endif()
 
@@ -46,6 +46,9 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(my-cpp-project CXX C)
+
+find_package(LLVM REQUIRED CONFIG)
+find_package(MLIR REQUIRED CONFIG)
 
 add_subdirectory(test)
 add_subdirectory(src)
