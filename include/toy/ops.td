@@ -3,6 +3,8 @@
 
 include "mlir/IR/DialectBase.td"
 include "mlir/IR/OpBase.td"
+include "mlir/IR/FunctionInterfaces.td"
+// include "mlir/Interfaces/FunctionInterfaces.td"
 
 def Toy_Dialect : Dialect {
 	let name = "toy";
@@ -73,6 +75,58 @@ def AddOp : Toy_Op<"add"> {
 	let builders = [
 		OpBuilder<(ins "mlir::Value":$lhs, "mlir::Value":$rhs)>
 	];
+}
+
+// FuncOp
+// traitをattachしている。
+// https://mlir.llvm.org/docs/Traits/
+def FuncOp : Toy_Op<"func", [
+	FunctionOpInterface, IsolatedFromAbove
+]> {
+	let summary = "user defined function operation";
+	let description = [{
+		The "toy.func" operation represents a user defined function. These are
+		callable SSA-region operations that contain toy computations.
+
+		Example.
+
+		```mlir
+		toy.func@main() {
+			%0 = toy.constant() dense<5.500000e+00> : tensor<f64>
+			%1 = toy.reshape(%0 : tensor<f64>) to tensor<2x2xf64>
+			toy.print %1 : tensor<2x2xf64>
+			toy.return
+		}
+	}];
+
+	let arguments = (ins 
+		SymbolNameAttr:$sym_name,
+		TypeAttrOf<FunctionType>:$function_type,
+		OptionalAttr<DictArrayAttr>:$arg_attrs,
+		OptionalAttr<DictArrayAttr>:$res_attrs
+	);
+	let regions = (region AnyRegion:$body);
+
+	let builders = [
+		OpBuilder<(ins
+			"mlir::StringRef":$name, "mlir::FunctionType":$type,
+			CArg<"mlir::ArrayRef<mlir::NamedAttribute>", "{}">:$attrs
+		)>
+	];
+
+	let extraClassDeclaration = [{
+		// FunctionOpInterface Methods
+		
+		/// Return the argument types of this function.
+		mlir::ArrayRef<mlir::Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+
+		/// Return the result types of this function.
+		mlir::ArrayRef<mlir::Type> getResultTypes() { return getFunctionType().getResults(); }
+
+		mlir::Region *getCallableRegion() { return &getBody(); }
+	}];
+
+	let skipDefaultBuilders = 1;
 }
 
 #endif // TOY_OPS

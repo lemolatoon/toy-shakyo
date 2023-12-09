@@ -1,17 +1,18 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Location.h"
 #include "toy/AST.h"
 #include "toy/dialect.h"
 #include "toy/lexer.h"
 #include "toy/parser.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 #include <iostream>
-#include <llvm-16/llvm/ADT/ArrayRef.h>
 #include <memory>
 #include <vector>
 
@@ -62,6 +63,24 @@ def main() {
   auto builder = mlir::OpBuilder(&context);
   auto theModule = mlir::ModuleOp::create(builder.getUnknownLoc());
 
+  // Create an MLIR function for the given prototype.
+  builder.setInsertionPointToEnd(theModule.getBody());
+  // all arguments are unranked tensors of f64
+  llvm::SmallVector<mlir::Type, 4> argTypes(
+      2, mlir::UnrankedTensorType::get(builder.getF64Type()));
+  auto funcType = builder.getFunctionType(argTypes, std::nullopt);
+  FuncOp func =
+      builder.create<FuncOp>(builder.getUnknownLoc(), "main", funcType);
+
+  // Let's start the body of the function now!
+  mlir::Block &entryBlock = func.front();
+
+  // Set the insertion point in the builder to the beginning of the function
+  // body, it will be used throughout the codegen to create operations in this
+  // function.
+  builder.setInsertionPointToStart(&entryBlock);
+
+  // Body==============================================
   auto dataType = mlir::RankedTensorType::get({1, 2, 3}, builder.getF64Type());
   auto dataAttribute = mlir::DenseElementsAttr::get(
       dataType, llvm::ArrayRef({1.0, 2.0, 3.0, 4.0, 5.0, 6.0}));
@@ -70,6 +89,7 @@ def main() {
   mlir::Value rhs = builder.create<ConstantOp>(builder.getUnknownLoc(),
                                                dataType, dataAttribute);
   mlir::Value added = builder.create<AddOp>(builder.getUnknownLoc(), lhs, rhs);
+  // Body end==========================================
   theModule.print(llvm::errs());
   return 0;
 }

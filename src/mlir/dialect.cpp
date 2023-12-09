@@ -1,5 +1,6 @@
 #include "toy/dialect.h"
 
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
@@ -62,7 +63,7 @@ mlir::LogicalResult ConstantOp::verify() {
   return mlir::success();
 }
 
-// add op
+// AddOp
 
 // ops.tdのAddOpで宣言したbuild関数
 void AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
@@ -74,4 +75,15 @@ void AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
   // は以下の記述だった。実際↑のoverloadされたAddOp::buildも同じことをしているので、おそらく同じ意味。
   // state.addTypes(mlir::UnrankedTensorType::get(builder.getF64Type()));
   // state.addOperands({lhs, rhs});
+}
+
+// FuncOp
+
+void FuncOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                   mlir::StringRef name, mlir::FunctionType type,
+                   mlir::ArrayRef<mlir::NamedAttribute> attrs) {
+  // FunctionOpInterface provides a convenient `build` method that will populate
+  // the state of our FuncOp, and create an entry block.
+
+  buildWithEntryBlock(builder, state, name, type, attrs, type.getInputs());
 }

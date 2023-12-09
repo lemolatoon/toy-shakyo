@@ -3,6 +3,7 @@
 
 #include "mlir/Bytecode/BytecodeImplementation.h"
 #include "mlir/IR/Dialect.h"
+#include "mlir/IR/FunctionInterfaces.h"
 #include "mlir/IR/Region.h"
 
 // Include the auto-generated header file containing the declarations of the
