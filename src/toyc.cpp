@@ -65,7 +65,11 @@ def main() {
   auto dataType = mlir::RankedTensorType::get({1, 2, 3}, builder.getF64Type());
   auto dataAttribute = mlir::DenseElementsAttr::get(
       dataType, llvm::ArrayRef({1.0, 2.0, 3.0, 4.0, 5.0, 6.0}));
-  builder.create<ConstantOp>(builder.getUnknownLoc(), dataType, dataAttribute);
+  mlir::Value lhs = builder.create<ConstantOp>(builder.getUnknownLoc(),
+                                               dataType, dataAttribute);
+  mlir::Value rhs = builder.create<ConstantOp>(builder.getUnknownLoc(),
+                                               dataType, dataAttribute);
+  mlir::Value added = builder.create<AddOp>(builder.getUnknownLoc(), lhs, rhs);
   theModule.print(llvm::errs());
   return 0;
 }

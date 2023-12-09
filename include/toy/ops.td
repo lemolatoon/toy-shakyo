@@ -57,4 +57,22 @@ def ConstantOp : Toy_Op<"constant"> {
 	let hasVerifier = 1;
 }
 
+// AddOp
+def AddOp : Toy_Op<"add"> {
+	let summary = "element-wise add operation";
+	let description = [{
+		The "add" operation performs element-wise addition between two tensors.
+		The shapes of the tensor operands are expected to match.
+	}];
+
+	let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
+	let results = (outs F64Tensor);
+
+	// Allow building an AddOp with from two input operands.
+	// `mlir::Value` is the type
+	let builders = [
+		OpBuilder<(ins "mlir::Value":$lhs, "mlir::Value":$rhs)>
+	];
+}
+
 #endif // TOY_OPS

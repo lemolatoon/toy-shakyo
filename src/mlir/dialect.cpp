@@ -61,3 +61,17 @@ mlir::LogicalResult ConstantOp::verify() {
 
   return mlir::success();
 }
+
+// add op
+
+// ops.tdのAddOpで宣言したbuild関数
+void AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                  mlir::Value lhs, mlir::Value rhs) {
+  auto dataType = mlir::UnrankedTensorType::get(builder.getF64Type());
+  AddOp::build(builder, state, dataType, {lhs, rhs},
+               mlir::ArrayRef<mlir::NamedAttribute>());
+  // tutorial
+  // は以下の記述だった。実際↑のoverloadされたAddOp::buildも同じことをしているので、おそらく同じ意味。
+  // state.addTypes(mlir::UnrankedTensorType::get(builder.getF64Type()));
+  // state.addOperands({lhs, rhs});
+}
