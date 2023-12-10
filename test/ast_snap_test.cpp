@@ -1,5 +1,9 @@
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/MLIRContext.h"
 #include "toy/AST.h"
+#include "toy/dialect.h"
 #include "toy/lexer.h"
+#include "toy/mlirGen.h"
 #include "toy/parser.h"
 #include "gtest/gtest.h"
 #include <llvm-16/llvm/Support/raw_ostream.h>
@@ -94,5 +98,47 @@ def main() {
      var: f @:28:9
     ]
    } // Block
+)");
+}
+
+TEST(MLIR, Snap) {
+  std::string_view toySource = R"(
+def main() {
+  print([[1, 1], [1, 2]]);
+  print(1 + (2 + 3));
+  print([1, 2, 3] + [4, 5, 6]);
+}
+  )";
+  auto lexer =
+      LexerBuffer(toySource.begin(), toySource.end() - 1, "sample.toy");
+  auto parser = Parser(lexer);
+  auto module = parser.parseModule();
+  // not null
+  ASSERT_TRUE(module);
+
+  mlir::MLIRContext context;
+  context.getOrLoadDialect<toy::ToyDialect>();
+
+  auto moduleOp = mlirGen(context, *module);
+  auto buf = std::string{};
+  auto stream = llvm::raw_string_ostream{buf};
+  moduleOp->print(stream);
+  EXPECT_EQ(buf, R"(module {
+  "toy.func"() ({
+    %0 = "toy.constant"() {value = dense<[[1.000000e+00, 1.000000e+00], [1.000000e+00, 2.000000e+00]]> : tensor<2x2xf64>} : () -> tensor<2x2xf64>
+    toy.print %0 : tensor<2x2xf64>
+    %1 = "toy.constant"() {value = dense<1.000000e+00> : tensor<f64>} : () -> tensor<f64>
+    %2 = "toy.constant"() {value = dense<2.000000e+00> : tensor<f64>} : () -> tensor<f64>
+    %3 = "toy.constant"() {value = dense<3.000000e+00> : tensor<f64>} : () -> tensor<f64>
+    %4 = "toy.add"(%2, %3) : (tensor<f64>, tensor<f64>) -> tensor<*xf64>
+    %5 = "toy.add"(%1, %4) : (tensor<f64>, tensor<*xf64>) -> tensor<*xf64>
+    toy.print %5 : tensor<*xf64>
+    %6 = "toy.constant"() {value = dense<[1.000000e+00, 2.000000e+00, 3.000000e+00]> : tensor<3xf64>} : () -> tensor<3xf64>
+    %7 = "toy.constant"() {value = dense<[4.000000e+00, 5.000000e+00, 6.000000e+00]> : tensor<3xf64>} : () -> tensor<3xf64>
+    %8 = "toy.add"(%6, %7) : (tensor<3xf64>, tensor<3xf64>) -> tensor<*xf64>
+    toy.print %8 : tensor<*xf64>
+    toy.return
+  }) {function_type = () -> (), sym_name = "main"} : () -> ()
+}
 )");
 }

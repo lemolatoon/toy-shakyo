@@ -12,7 +12,7 @@ add_executable(googleTest
 target_link_libraries(googleTest GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
 
 # internal
-target_link_libraries(googleTest parser)
+target_link_libraries(googleTest parser mlir)
 
 target_include_directories(googleTest PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
@@ -24,5 +24,6 @@ target_link_directories(googleTest PRIVATE ${LLVM_LIBRARY_DIRS})
 target_link_libraries(googleTest LLVM-16)
 
 ##=== MLIR ===##
+# linking with internal `mlir` target already links with `MLIR`
 
 enable_testing()
