@@ -11,6 +11,9 @@ CMAKE_ARGS+=-DCMAKE_TOOLCHAIN_FILE=$(VCPKG_ROOT)/scripts/buildsystems/vcpkg.cmak
 -DOVERWRITE_LLVM_DIR=$(LLVM_CMAKE_DIR) \
 -DOVERWRITE_MLIR_DIR=$(MLIR_CMAKE_DIR)
 
+build:
+	ninja -C build
+
 configure: FORCE
 	cmake -GNinja -S . -B build $(CMAKE_ARGS) $(CMAKE_EXTRA_ARGS)
 
@@ -20,11 +23,17 @@ gen: FORCE
 	$(MLIR_TBLGEN) -gen-op-decls include/toy/ops.td -I $(MLIR_INCLUDE_DIR) > include/toy/ops.h.inc
 	$(MLIR_TBLGEN) -gen-op-defs include/toy/ops.td -I $(MLIR_INCLUDE_DIR) > include/toy/ops.cpp.inc
 
-build:
-	ninja -C build
-
+# example: 
+#  make ARGS="sampels/smaple.toy --emit=ast" 
+#  make ARGS="sampels/smaple.toy --emit=mlir"
 run: build
-	./build/src/a.out
+	./build/src/a.out $(ARGS)
+
+SRC=samples/sample.toy
+ast: build
+	./build/src/a.out $(SRC) --emit=ast
+mlir: build
+	./build/src/a.out $(SRC) --emit=mlir
 
 test: build
 	./build/test/googleTest

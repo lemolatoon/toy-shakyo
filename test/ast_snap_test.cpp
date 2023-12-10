@@ -40,8 +40,7 @@ def main() {
 }
 )";
 
-  auto lexer =
-      LexerBuffer(toySource.begin(), toySource.end() - 1, "sample.toy");
+  auto lexer = LexerBuffer(toySource.begin(), toySource.end(), "sample.toy");
   auto parser = Parser(lexer);
   auto module = parser.parseModule();
   // not null
@@ -116,8 +115,7 @@ def main() {
   print(a * c);
 }
   )";
-  auto lexer =
-      LexerBuffer(toySource.begin(), toySource.end() - 1, "sample.toy");
+  auto lexer = LexerBuffer(toySource.begin(), toySource.end(), "sample.toy");
   auto parser = Parser(lexer);
   auto module = parser.parseModule();
   // not null
