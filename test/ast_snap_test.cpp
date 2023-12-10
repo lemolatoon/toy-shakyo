@@ -104,7 +104,8 @@ def main() {
 TEST(MLIR, Snap) {
   std::string_view toySource = R"(
 def main() {
-  print(just_add([1, 2, 3], [4, 5, 6]));
+  var a = [[1, 2, 3], [4, 5, 6]];
+  var b = just_add(a, a);
   print([[1, 1], [1, 2]]);
   print(1 + (2 + 3));
   print([1, 2, 3] + [4, 5, 6]);
@@ -126,22 +127,20 @@ def main() {
   moduleOp->print(stream);
   EXPECT_EQ(buf, R"(module {
   "toy.func"() ({
-    %0 = "toy.constant"() {value = dense<[1.000000e+00, 2.000000e+00, 3.000000e+00]> : tensor<3xf64>} : () -> tensor<3xf64>
-    %1 = "toy.constant"() {value = dense<[4.000000e+00, 5.000000e+00, 6.000000e+00]> : tensor<3xf64>} : () -> tensor<3xf64>
-    %2 = toy.generic_call @just_add(%0, %1) : (tensor<3xf64>, tensor<3xf64>) -> tensor<*xf64>
-    toy.print %2 : tensor<*xf64>
-    %3 = "toy.constant"() {value = dense<[[1.000000e+00, 1.000000e+00], [1.000000e+00, 2.000000e+00]]> : tensor<2x2xf64>} : () -> tensor<2x2xf64>
-    toy.print %3 : tensor<2x2xf64>
-    %4 = "toy.constant"() {value = dense<1.000000e+00> : tensor<f64>} : () -> tensor<f64>
-    %5 = "toy.constant"() {value = dense<2.000000e+00> : tensor<f64>} : () -> tensor<f64>
-    %6 = "toy.constant"() {value = dense<3.000000e+00> : tensor<f64>} : () -> tensor<f64>
-    %7 = "toy.add"(%5, %6) : (tensor<f64>, tensor<f64>) -> tensor<*xf64>
-    %8 = "toy.add"(%4, %7) : (tensor<f64>, tensor<*xf64>) -> tensor<*xf64>
-    toy.print %8 : tensor<*xf64>
-    %9 = "toy.constant"() {value = dense<[1.000000e+00, 2.000000e+00, 3.000000e+00]> : tensor<3xf64>} : () -> tensor<3xf64>
-    %10 = "toy.constant"() {value = dense<[4.000000e+00, 5.000000e+00, 6.000000e+00]> : tensor<3xf64>} : () -> tensor<3xf64>
-    %11 = "toy.add"(%9, %10) : (tensor<3xf64>, tensor<3xf64>) -> tensor<*xf64>
-    toy.print %11 : tensor<*xf64>
+    %0 = "toy.constant"() {value = dense<[[1.000000e+00, 2.000000e+00, 3.000000e+00], [4.000000e+00, 5.000000e+00, 6.000000e+00]]> : tensor<2x3xf64>} : () -> tensor<2x3xf64>
+    %1 = toy.generic_call @just_add(%0, %0) : (tensor<2x3xf64>, tensor<2x3xf64>) -> tensor<*xf64>
+    %2 = "toy.constant"() {value = dense<[[1.000000e+00, 1.000000e+00], [1.000000e+00, 2.000000e+00]]> : tensor<2x2xf64>} : () -> tensor<2x2xf64>
+    toy.print %2 : tensor<2x2xf64>
+    %3 = "toy.constant"() {value = dense<1.000000e+00> : tensor<f64>} : () -> tensor<f64>
+    %4 = "toy.constant"() {value = dense<2.000000e+00> : tensor<f64>} : () -> tensor<f64>
+    %5 = "toy.constant"() {value = dense<3.000000e+00> : tensor<f64>} : () -> tensor<f64>
+    %6 = "toy.add"(%4, %5) : (tensor<f64>, tensor<f64>) -> tensor<*xf64>
+    %7 = "toy.add"(%3, %6) : (tensor<f64>, tensor<*xf64>) -> tensor<*xf64>
+    toy.print %7 : tensor<*xf64>
+    %8 = "toy.constant"() {value = dense<[1.000000e+00, 2.000000e+00, 3.000000e+00]> : tensor<3xf64>} : () -> tensor<3xf64>
+    %9 = "toy.constant"() {value = dense<[4.000000e+00, 5.000000e+00, 6.000000e+00]> : tensor<3xf64>} : () -> tensor<3xf64>
+    %10 = "toy.add"(%8, %9) : (tensor<3xf64>, tensor<3xf64>) -> tensor<*xf64>
+    toy.print %10 : tensor<*xf64>
     toy.return
   }) {function_type = () -> (), sym_name = "main"} : () -> ()
 }

@@ -72,6 +72,15 @@ private:
                                      loc.col);
   }
 
+  /// Declare a variable in the current scope, return success if the variable
+  /// wasn't declared yet.
+  mlir::LogicalResult declare(mlir::StringRef var, mlir::Value value) {
+    if (symbolTable.count(var))
+      return mlir::failure();
+    symbolTable.insert(var, value);
+    return mlir::success();
+  }
+
   /// Create the prototype for an MLIR function with an many arguments as the
   /// provided Toy AST prototype.
   toy::FuncOp mlirGen(toy::PrototypeAST &proto) {
@@ -104,9 +113,9 @@ private:
 
     for (const auto nameValue :
          llvm::zip(protoArgs, entryBlock.getArguments())) {
-      mlir::emitError(loc(funcAST.getProto()->loc()),
-                      "arguments unimplemented");
-      return nullptr;
+      if (mlir::failed(declare(std::get<0>(nameValue)->getName(),
+                               std::get<1>(nameValue))))
+        return nullptr;
     }
 
     // Set the insertion point in the builder to the beginning of the function
@@ -173,6 +182,18 @@ private:
 
     emitError(location, "invalid binary operation '") << binop.getOp() << "'";
 
+    return nullptr;
+  }
+
+  /// This is a reference to a variable in an expression. The variable is
+  /// expected to have been declared and so should have a value in the symbol
+  /// table, otherwise emit an error and return nullptr.
+  mlir::Value mlirGen(toy::VariableExprAST &expr) {
+    if (auto variable = symbolTable.lookup(expr.getName()))
+      return variable;
+
+    emitError(loc(expr.loc()), "error: unknown variable '")
+        << expr.getName() << "'";
     return nullptr;
   }
 
@@ -316,16 +337,47 @@ private:
       return mlirGen(mlir::cast<toy::NumberExprAST>(expr));
     case toy::ExprAST::Expr_Call:
       return mlirGen(mlir::cast<toy::CallExprAST>(expr));
+    case toy::ExprAST::Expr_Var:
+      return mlirGen(mlir::cast<toy::VariableExprAST>(expr));
     case toy::ExprAST::Expr_Print:
     case toy::ExprAST::Expr_Return:
-    case toy::ExprAST::Expr_VarDecl:
-    case toy::ExprAST::Expr_Var:
     default:
       emitError(loc(expr.loc()))
           << "MLIR codegen encountered an unhandled expr kind '"
           << mlir::Twine(expr.getKind()) << "'";
       return nullptr;
     }
+  }
+
+  /// Handle a variable declaration, we'll codegen the expression that forms the
+  /// initializer and record the value in the symbol table before returning it.
+  /// Future expressions will be able to reference this variable through symbol
+  /// table look up.
+  mlir::Value mlirGen(toy::VarDeclExprAST &vardecl) {
+    auto *init = vardecl.getInitVal();
+    if (!init) {
+      emitError(loc(vardecl.loc()),
+                "missing initializer in variable declaration");
+      return nullptr;
+    }
+
+    mlir::Value value = mlirGen(*init);
+    if (!value)
+      return nullptr;
+
+    // We have the initializer value, but in case the variable was declared with
+    // specific shape, we emit a "reshape" operation. It will get optimized out
+    // later as needed.
+    if (!vardecl.getType().shape.empty()) {
+      emitError(loc(vardecl.loc()), "var decl with reshape unimplemented");
+      return nullptr;
+    }
+
+    // Register the value in the symbol table.
+    if (mlir::failed(declare(vardecl.getName(), value)))
+      return nullptr;
+
+    return value;
   }
 
   /// Codegen a list of expression, return failure if one of them hit an error.
@@ -337,8 +389,9 @@ private:
       // print. These can only appear in block list and not in nested
       // expressions.
       if (auto *vardecl = mlir::dyn_cast<toy::VarDeclExprAST>(expr.get())) {
-        mlir::emitError(loc(vardecl->loc()), "var decl unimplemented");
-        return mlir::failure();
+        if (!mlirGen(*vardecl))
+          return mlir::failure();
+        continue;
       }
       if (auto *ret = mlir::dyn_cast<toy::ReturnExprAST>(expr.get()))
         return mlirGen(*ret);
