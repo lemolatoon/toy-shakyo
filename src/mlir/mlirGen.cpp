@@ -260,6 +260,34 @@ private:
     data.push_back(mlir::cast<NumberExprAST>(expr).getValue());
   }
 
+  /// Emit a call expression. It emits specific operations for the `transpose`
+  /// builtin. Other identifiers are assumed to be user-defined functions.
+  mlir::Value mlirGen(CallExprAST &call) {
+    mlir::StringRef callee = call.getCallee();
+    auto location = loc(call.loc());
+
+    // Codegen the operands first.
+    mlir::SmallVector<mlir::Value, 4> operands;
+    for (auto &expr : call.getArgs()) {
+      auto arg = mlirGen(*expr);
+      if (!arg)
+        return nullptr;
+      operands.push_back(arg);
+    }
+
+    // Builtin calls have their custom operation, meaning this is a
+    // straightforward emission.
+    if (callee == "transpose") {
+      mlir::emitError(location, "builtin transpose unimplemented");
+      return nullptr;
+    }
+
+    // Otherwise this is a call to a user-defined function. Calls to
+    // user-defined functions are mapped to a custom call  that takes the callee
+    // name as an attribute.
+    return builder.create<GenericCallOp>(location, callee, operands);
+  }
+
   /// Emit a print expression. It emits specific operations for two builtins:
   /// transpose(x) and print(x).
   mlir::LogicalResult mlirGen(toy::PrintExprAST &call) {
@@ -286,11 +314,12 @@ private:
       return mlirGen(mlir::cast<toy::BinaryExprAST>(expr));
     case toy::ExprAST::Expr_Num:
       return mlirGen(mlir::cast<toy::NumberExprAST>(expr));
+    case toy::ExprAST::Expr_Call:
+      return mlirGen(mlir::cast<toy::CallExprAST>(expr));
     case toy::ExprAST::Expr_Print:
     case toy::ExprAST::Expr_Return:
     case toy::ExprAST::Expr_VarDecl:
     case toy::ExprAST::Expr_Var:
-    case toy::ExprAST::Expr_Call:
     default:
       emitError(loc(expr.loc()))
           << "MLIR codegen encountered an unhandled expr kind '"

@@ -187,4 +187,42 @@ def PrintOp : Toy_Op<"print"> {
 	let assemblyFormat = "$input attr-dict `:` type($input)";
 }
 
+// GenericCallOp
+
+def GenericCallOp : Toy_Op<"generic_call"> {
+	let summary = "generic call operation";
+
+	let description = [{
+		Generic calls represent calls to a user defined function that needs to
+		be specialized for the shape of its arguments. The callee name is attached
+		as a symbol reference via an attribute. The arguments list must match the
+		arguments expected by the callee. For example:
+
+		```mlir
+			%4 = toy.generic_call @my_func(%1, %2)
+				: (tensor<2x3xf64>, tensor<2x3xf64>) -> tensor<*xf64>
+		```
+
+		This is only valid if a function named "my_func" exists and takes two
+		arguments.
+	}];
+
+	// The generic call operation takes a symbol reference attributes as the
+	// callee, and inputs for the call.
+	let arguments = (ins FlatSymbolRefAttr:$callee, Variadic<F64Tensor>:$inputs);
+
+  // The generic call operation returns a single value of TensorType.
+	let results = (outs F64Tensor);
+
+	// Specialize assembly printing and parsing using a declarative format.
+	let assemblyFormat = [{
+		$callee `(` $inputs `)` attr-dict `:` functional-type($inputs, results)
+	}];
+
+	// Add custom build methods for the generic call operation.
+	let builders = [
+		OpBuilder<(ins "mlir::StringRef":$callee, "mlir::ArrayRef<mlir::Value>":$arguments)>
+	];
+}
+
 #endif // TOY_OPS

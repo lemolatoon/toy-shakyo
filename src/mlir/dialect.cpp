@@ -126,3 +126,15 @@ mlir::LogicalResult ReturnOp::verify() {
                        << ") doesn't match function result type (" << resultType
                        << ")";
 }
+
+// GenericCallOp
+
+void GenericCallOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                          mlir::StringRef callee,
+                          mlir::ArrayRef<mlir::Value> arguments) {
+  // Generic call always returns an unranked Tensor initially.
+  state.addTypes(mlir::UnrankedTensorType::get(builder.getF64Type()));
+  state.addOperands(arguments);
+  state.addAttribute("callee",
+                     mlir::SymbolRefAttr::get(builder.getContext(), callee));
+}
