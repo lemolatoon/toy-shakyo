@@ -1,10 +1,12 @@
 #ifndef TOY_DIALECT_H
 #define TOY_DIALECT_H
 
+// .tdファイルでincludeしたものに対応するのを、ここでincludeする。
 #include "mlir/Bytecode/BytecodeImplementation.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/FunctionInterfaces.h"
 #include "mlir/IR/Region.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 
 // Include the auto-generated header file containing the declarations of the
 // toy dialect.

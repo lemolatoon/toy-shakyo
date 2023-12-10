@@ -89,7 +89,18 @@ def main() {
   mlir::Value rhs = builder.create<ConstantOp>(builder.getUnknownLoc(),
                                                dataType, dataAttribute);
   mlir::Value added = builder.create<AddOp>(builder.getUnknownLoc(), lhs, rhs);
+
+  ReturnOp ret = builder.create<ReturnOp>(builder.getUnknownLoc(), added);
+
+  if (ret.hasOperand())
+    func.setFunctionType(builder.getFunctionType(
+        func.getFunctionType().getInputs(),
+        mlir::UnrankedTensorType::get(builder.getF64Type())));
   // Body end==========================================
+  if (mlir::failed(theModule.verify())) {
+    llvm::errs() << "Module verification failed\n";
+    return 1;
+  }
   theModule.print(llvm::errs());
   return 0;
 }

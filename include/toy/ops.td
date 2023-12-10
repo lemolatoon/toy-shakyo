@@ -3,6 +3,7 @@
 
 include "mlir/IR/DialectBase.td"
 include "mlir/IR/OpBase.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/IR/FunctionInterfaces.td"
 // include "mlir/Interfaces/FunctionInterfaces.td"
 
@@ -127,6 +128,48 @@ def FuncOp : Toy_Op<"func", [
 	}];
 
 	let skipDefaultBuilders = 1;
+}
+
+// Return Op
+
+def ReturnOp : Toy_Op<"return", [Pure, HasParent<"FuncOp">, Terminator]> {
+	let summary = "return operation";
+
+	let description = [{
+		The "return" operation represents a return operation within a function.
+		The operation takes an optional tensor operand and produces no result.
+		The operand type must match the signature of the function that contains
+		the operation. For example:
+
+		```mlir
+		  toy.func @foo() -> tensor<2xf64> {
+				...
+				toy.return %0 : tensor<2xf64>
+			}
+		```
+	}];
+
+	// The return operation takes an optional input operand to return. This
+	// value must match the return type of the enclosing function.
+	let arguments = (ins Variadic<F64Tensor>:$input);
+
+	// The return operation only emits the input in the format if it is present.
+	// `hasCustomAssemblyFormat`を使うんではなくて、こういう指定方法もあるっぽい
+	let assemblyFormat = "($input^ `:` type($input))? attr-dict";
+
+	// Allow building a ReturnOp with no return operand.
+	// builderの引数なし。インラインでC++のコードを書いている。
+	let builders = [
+		OpBuilder<(ins), [{ build($_builder, $_state, std::nullopt); }]>
+	];
+
+	// Provide extra utility definitions on the c++ operation class definition.
+	let extraClassDeclaration = [{
+		bool hasOperand() { return getNumOperands() != 0; }
+	}];
+
+	// Invoke a static verify method to verify this return operation.
+	let hasVerifier = 1;
 }
 
 #endif // TOY_OPS
