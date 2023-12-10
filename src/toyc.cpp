@@ -90,6 +90,8 @@ def main() {
                                                dataType, dataAttribute);
   mlir::Value added = builder.create<AddOp>(builder.getUnknownLoc(), lhs, rhs);
 
+  builder.create<PrintOp>(builder.getUnknownLoc(), added);
+
   ReturnOp ret = builder.create<ReturnOp>(builder.getUnknownLoc(), added);
 
   if (ret.hasOperand())

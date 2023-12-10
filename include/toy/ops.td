@@ -172,4 +172,19 @@ def ReturnOp : Toy_Op<"return", [Pure, HasParent<"FuncOp">, Terminator]> {
 	let hasVerifier = 1;
 }
 
+// PrintOp
+
+def PrintOp : Toy_Op<"print"> {
+	let summary = "print operation";
+	let description = [{
+		The "print" builtin operation prints a given input tensor, and produces
+		no results.
+	}];
+
+	// The print operation takes a input tensor to print.
+	let arguments = (ins F64Tensor:$input);
+
+	let assemblyFormat = "$input attr-dict `:` type($input)";
+}
+
 #endif // TOY_OPS
