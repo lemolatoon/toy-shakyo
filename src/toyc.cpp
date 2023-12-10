@@ -1,6 +1,15 @@
+#include "mlir/IR/AsmState.h"
+#include "mlir/IR/Builders.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/Location.h"
+#include "mlir/IR/MLIRContext.h"
 #include "toy/AST.h"
+#include "toy/dialect.h"
 #include "toy/lexer.h"
+#include "toy/mlirGen.h"
 #include "toy/parser.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
@@ -10,46 +19,118 @@
 #include <memory>
 #include <vector>
 
-int main() {
-  std::string_view toySource = R"(
-# User defined generic function that operates on unknown shaped arguments.
-def multiply_transpose(a, b) {
-  return transpose(a) * transpose(b);
-}
+#include "mlir/Parser/Parser.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/SourceMgr.h"
 
-def main() {
-  # Define a variable `a` with shape <2, 3>, initialized with the literal value.
-  var a = [[1, 2, 3], [4, 5, 6]];
-  var b<2, 3> = [1, 2, 3, 4, 5, 6];
+namespace cl = llvm::cl;
 
-  # This call will specialize `multiply_transpose` with <2, 3> for both
-  # arguments and deduce a return type of <3, 2> in initialization of `c`.
-  var c = multiply_transpose(a, b);
+static cl::opt<std::string> inputFilename(cl::Positional,
+                                          cl::desc("<input toy file>"),
+                                          cl::init("-"),
+                                          cl::value_desc("filename"));
+namespace {
+enum InputType { Toy, MLIR };
+} // namespace
+static cl::opt<enum InputType> inputType(
+    "x", cl::init(Toy), cl::desc("Decided the kind of output desired"),
+    cl::values(clEnumValN(Toy, "toy", "load the input file as a Toy source.")),
+    cl::values(clEnumValN(MLIR, "mlir",
+                          "load the input file as an MLIR file")));
+namespace {
+enum Action { None, DumpAST, DumpMLIR };
+} // namespace
+static cl::opt<enum Action> emitAction(
+    "emit", cl::desc("Select the kind of output desired"),
+    cl::values(clEnumValN(DumpAST, "ast", "output the AST dump")),
+    cl::values(clEnumValN(DumpMLIR, "mlir", "output the MLIR dump")));
 
-  # A second call to `multiply_transpose` with <2, 3> for both arguments will
-  # reuse the previously specialized and inferred version and return <3, 2>.
-  var d = multiply_transpose(b, a);
+/// Returns a Toy AST resulting from parsing the file or a nullptr on error
+std::unique_ptr<toy::ModuleAST> parseInputFile(mlir::StringRef filename) {
+  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileOrError =
+      llvm::MemoryBuffer::getFileOrSTDIN(filename);
 
-  # A new call with <3, 2> (instead of <2, 3>) for both dimensions will
-  # trigger another specialization of `multiply_transpose`.
-  var e = multiply_transpose(c, d);
-
-  # Finally, calling into `multiply_transpose` with incompatible shapes
-  # (<2, 3> and <3, 2>) will trigger a shape inference error.
-  var f = multiply_transpose(a, c);
-
-  print(f);
-}
-)";
-
-  auto lexer =
-      LexerBuffer(toySource.begin(), toySource.end() - 1, "sample.toy");
-  auto parser = Parser(lexer);
-  auto module = parser.parseModule();
-  if (!module) {
-    std::cerr << "Failed to parse sample.toy" << std::endl;
-    return 1;
+  if (std::error_code ec = fileOrError.getError()) {
+    llvm::errs() << "Could not open input file: " << ec.message() << "\n";
+    return nullptr;
   }
-  toy::dump(*module);
+  auto buffer = fileOrError.get()->getBuffer();
+  LexerBuffer lexer(buffer.begin(), buffer.end(), std::string(filename));
+  Parser parser(lexer);
+  return parser.parseModule();
+}
+
+int dumpMLIR() {
+  mlir::MLIRContext context;
+  // Load our Dialect in this MLIR context
+  context.getOrLoadDialect<toy::ToyDialect>();
+
+  // Handle '.toy' input to the compiler
+  if (inputType != InputType::MLIR &&
+      !llvm::StringRef(inputFilename).endswith(".mlir")) {
+    auto moduleAST = parseInputFile(inputFilename);
+    if (!moduleAST)
+      return 6;
+    mlir::OwningOpRef<mlir::ModuleOp> module = mlirGen(context, *moduleAST);
+    if (!module)
+      return 1;
+
+    module->dump();
+    return 0;
+  }
+
+  // Otherwise, the input is '.mlir'
+  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileOrErr =
+      llvm::MemoryBuffer::getFileOrSTDIN(inputFilename);
+
+  if (std::error_code ec = fileOrErr.getError()) {
+    llvm::errs() << "Could not open input file: " << ec.message() << "\n";
+    return -1;
+  }
+
+  // Parse the input mlir
+  llvm::SourceMgr sourceMgr;
+  sourceMgr.AddNewSourceBuffer(std::move(*fileOrErr), llvm::SMLoc());
+  mlir::OwningOpRef<mlir::ModuleOp> module =
+      mlir::parseSourceFile<mlir::ModuleOp>(sourceMgr, &context);
+  if (!module) {
+    llvm::errs() << "Error can't load file " << inputFilename << "\n";
+    return 3;
+  }
+
+  module->dump();
+  return 0;
+}
+
+int dumpAST() {
+  if (inputType == InputType::MLIR) {
+    llvm::errs() << "Can't dump a Toy AST when the input is MLIR\n";
+    return 5;
+  }
+
+  auto moduleAST = parseInputFile(inputFilename);
+  if (!moduleAST)
+    return 1;
+
+  dump(*moduleAST);
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  // Register any command line options.
+  mlir::registerAsmPrinterCLOptions();
+  mlir::registerMLIRContextCLOptions();
+  cl::ParseCommandLineOptions(argc, argv, "toy compiler\n");
+
+  switch (emitAction) {
+  case Action::DumpAST:
+    return dumpAST();
+  case Action::DumpMLIR:
+    return dumpMLIR();
+  default:
+    llvm::errs() << "No action specified (parsing only?), use -emit=<action>\n";
+  }
+
   return 0;
 }

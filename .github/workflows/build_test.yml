@@ -66,6 +66,9 @@ jobs:
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: make configure CMAKE_EXTRA_ARGS="-DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}"
 
+      - name: TableGen
+        run: make gen
+
       - name: Build
         # Build your program with the given configuration
         run: make build CMAKE_EXTRA_ARGS="-DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}"

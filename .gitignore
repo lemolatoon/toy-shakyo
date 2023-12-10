@@ -2,3 +2,4 @@
 /buildTest
 /.cache
 /vcpkg_installed
+*.inc

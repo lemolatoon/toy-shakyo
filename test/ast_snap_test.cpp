@@ -1,5 +1,9 @@
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/MLIRContext.h"
 #include "toy/AST.h"
+#include "toy/dialect.h"
 #include "toy/lexer.h"
+#include "toy/mlirGen.h"
 #include "toy/parser.h"
 #include "gtest/gtest.h"
 #include <llvm-16/llvm/Support/raw_ostream.h>
@@ -36,8 +40,7 @@ def main() {
 }
 )";
 
-  auto lexer =
-      LexerBuffer(toySource.begin(), toySource.end() - 1, "sample.toy");
+  auto lexer = LexerBuffer(toySource.begin(), toySource.end(), "sample.toy");
   auto parser = Parser(lexer);
   auto module = parser.parseModule();
   // not null
@@ -94,5 +97,61 @@ def main() {
      var: f @:28:9
     ]
    } // Block
+)");
+}
+
+TEST(MLIR, Snap) {
+  std::string_view toySource = R"(
+def transpose_add(a, b) {
+  return transpose(a) + transpose(b);
+}
+
+def main() {
+  var a = [[1, 2, 3], [4, 5, 6]];
+  var b = transpose_add(a, a);
+  var c<2, 3> = [1, 2, 3, 4, 5, 6];
+  print([[1, 1], [1, 2]]);
+  print(1 + (2 + 3));
+  print(a * c);
+}
+  )";
+  auto lexer = LexerBuffer(toySource.begin(), toySource.end(), "sample.toy");
+  auto parser = Parser(lexer);
+  auto module = parser.parseModule();
+  // not null
+  ASSERT_TRUE(module);
+
+  mlir::MLIRContext context;
+  context.getOrLoadDialect<toy::ToyDialect>();
+
+  auto moduleOp = mlirGen(context, *module);
+  auto buf = std::string{};
+  auto stream = llvm::raw_string_ostream{buf};
+  moduleOp->print(stream);
+  EXPECT_EQ(buf, R"(module {
+  toy.func @transpose_add(%arg0: tensor<*xf64>, %arg1: tensor<*xf64>) -> tensor<*xf64> {
+    %0 = toy.transpose(%arg0 : tensor<*xf64>) to tensor<*xf64>
+    %1 = toy.transpose(%arg1 : tensor<*xf64>) to tensor<*xf64>
+    %2 = "toy.add"(%0, %1) : (tensor<*xf64>, tensor<*xf64>) -> tensor<*xf64>
+    toy.return %2 : tensor<*xf64>
+  }
+  toy.func @main() {
+    %0 = "toy.constant"() {value = dense<[[1.000000e+00, 2.000000e+00, 3.000000e+00], [4.000000e+00, 5.000000e+00, 6.000000e+00]]> : tensor<2x3xf64>} : () -> tensor<2x3xf64>
+    %1 = toy.generic_call @transpose_add(%0, %0) : (tensor<2x3xf64>, tensor<2x3xf64>) -> tensor<*xf64>
+    %2 = "toy.constant"() {value = dense<[1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00]> : tensor<6xf64>} : () -> tensor<6xf64>
+    %3 = toy.reshape(%2 : tensor<6xf64>) to tensor<2x3xf64>
+    %4 = "toy.constant"() {value = dense<[[1.000000e+00, 1.000000e+00], [1.000000e+00, 2.000000e+00]]> : tensor<2x2xf64>} : () -> tensor<2x2xf64>
+    toy.print %4 : tensor<2x2xf64>
+    %5 = "toy.constant"() {value = dense<1.000000e+00> : tensor<f64>} : () -> tensor<f64>
+    %6 = "toy.constant"() {value = dense<2.000000e+00> : tensor<f64>} : () -> tensor<f64>
+    %7 = "toy.constant"() {value = dense<3.000000e+00> : tensor<f64>} : () -> tensor<f64>
+    %8 = "toy.add"(%6, %7) : (tensor<f64>, tensor<f64>) -> tensor<*xf64>
+    %9 = "toy.add"(%5, %8) : (tensor<f64>, tensor<*xf64>) -> tensor<*xf64>
+    toy.print %9 : tensor<*xf64>
+    %10 = "toy.mul"(%0, %3) : (tensor<2x3xf64>, tensor<2x3xf64>) -> tensor<*xf64>
+    toy.print %10 : tensor<*xf64>
+    toy.return
+  }
+}
 )");
 }

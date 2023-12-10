@@ -197,7 +197,7 @@ private:
   llvm::StringRef readNextLine() override {
     auto *begin = current;
     // 改行文字か、バッファの終端まで読み進める
-    while (current <= end && *current != '\n')
+    while (current <= end && *current && *current != '\n')
       ++current;
 
     // '\n'を読む
