@@ -103,6 +103,10 @@ def main() {
 
 TEST(MLIR, Snap) {
   std::string_view toySource = R"(
+def just_add(a, b) {
+  return a + b;
+}
+
 def main() {
   var a = [[1, 2, 3], [4, 5, 6]];
   var b = just_add(a, a);
@@ -126,6 +130,11 @@ def main() {
   auto stream = llvm::raw_string_ostream{buf};
   moduleOp->print(stream);
   EXPECT_EQ(buf, R"(module {
+  "toy.func"() ({
+  ^bb0(%arg0: tensor<*xf64>, %arg1: tensor<*xf64>):
+    %0 = "toy.add"(%arg0, %arg1) : (tensor<*xf64>, tensor<*xf64>) -> tensor<*xf64>
+    toy.return %0 : tensor<*xf64>
+  }) {function_type = (tensor<*xf64>, tensor<*xf64>) -> tensor<*xf64>, sym_name = "just_add"} : () -> ()
   "toy.func"() ({
     %0 = "toy.constant"() {value = dense<[[1.000000e+00, 2.000000e+00, 3.000000e+00], [4.000000e+00, 5.000000e+00, 6.000000e+00]]> : tensor<2x3xf64>} : () -> tensor<2x3xf64>
     %1 = toy.generic_call @just_add(%0, %0) : (tensor<2x3xf64>, tensor<2x3xf64>) -> tensor<*xf64>
