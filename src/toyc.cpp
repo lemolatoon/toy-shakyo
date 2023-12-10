@@ -59,26 +59,10 @@ def main() {
   }
   toy::dump(*module);
 
-  std::string_view toySource2 = R"(
-    def main() {
-      print([[1, 1], [1, 2]]);
-      print(1 + (2 + 3));
-      print([1, 2, 3] + [4, 5, 6]);
-    }
-  )";
-
-  auto lexer2 =
-      LexerBuffer(toySource2.begin(), toySource2.end() - 1, "sample2.toy");
-  auto parser2 = Parser(lexer2);
-  auto module2 = parser2.parseModule();
-  if (!module2) {
-    std::cerr << "Failed to parse sample.toy" << std::endl;
-    return 1;
-  }
   mlir::MLIRContext context;
   context.getOrLoadDialect<toy::ToyDialect>();
 
-  auto moduleOp = mlirGen(context, *module2);
+  auto moduleOp = mlirGen(context, *module);
 
   moduleOp->dump();
 
