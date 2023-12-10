@@ -138,3 +138,12 @@ void GenericCallOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
   state.addAttribute("callee",
                      mlir::SymbolRefAttr::get(builder.getContext(), callee));
 }
+
+// MulOp
+
+void MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                  mlir::Value lhs, mlir::Value rhs) {
+  auto resultType = mlir::UnrankedTensorType::get(builder.getF64Type());
+  MulOp::build(builder, state, resultType, {lhs, rhs},
+               mlir::ArrayRef<mlir::NamedAttribute>());
+}

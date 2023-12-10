@@ -176,8 +176,7 @@ private:
     case '+':
       return builder.create<AddOp>(location, lhs, rhs);
     case '*':
-      mlir::emitError(location, "'*' operator is unimplemented yet");
-      return nullptr;
+      return builder.create<MulOp>(location, lhs, rhs);
     }
 
     emitError(location, "invalid binary operation '") << binop.getOp() << "'";

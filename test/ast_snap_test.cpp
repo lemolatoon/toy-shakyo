@@ -112,7 +112,7 @@ def main() {
   var b = just_add(a, a);
   print([[1, 1], [1, 2]]);
   print(1 + (2 + 3));
-  print([1, 2, 3] + [4, 5, 6]);
+  print([1, 2, 3] * [4, 5, 6]);
 }
   )";
   auto lexer =
@@ -148,7 +148,7 @@ def main() {
     toy.print %7 : tensor<*xf64>
     %8 = "toy.constant"() {value = dense<[1.000000e+00, 2.000000e+00, 3.000000e+00]> : tensor<3xf64>} : () -> tensor<3xf64>
     %9 = "toy.constant"() {value = dense<[4.000000e+00, 5.000000e+00, 6.000000e+00]> : tensor<3xf64>} : () -> tensor<3xf64>
-    %10 = "toy.add"(%8, %9) : (tensor<3xf64>, tensor<3xf64>) -> tensor<*xf64>
+    %10 = "toy.mul"(%8, %9) : (tensor<3xf64>, tensor<3xf64>) -> tensor<*xf64>
     toy.print %10 : tensor<*xf64>
     toy.return
   }) {function_type = () -> (), sym_name = "main"} : () -> ()
