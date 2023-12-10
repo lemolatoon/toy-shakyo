@@ -131,14 +131,13 @@ def main() {
   auto stream = llvm::raw_string_ostream{buf};
   moduleOp->print(stream);
   EXPECT_EQ(buf, R"(module {
-  "toy.func"() ({
-  ^bb0(%arg0: tensor<*xf64>, %arg1: tensor<*xf64>):
+  toy.func @transpose_add(%arg0: tensor<*xf64>, %arg1: tensor<*xf64>) -> tensor<*xf64> {
     %0 = toy.transpose(%arg0 : tensor<*xf64>) to tensor<*xf64>
     %1 = toy.transpose(%arg1 : tensor<*xf64>) to tensor<*xf64>
     %2 = "toy.add"(%0, %1) : (tensor<*xf64>, tensor<*xf64>) -> tensor<*xf64>
     toy.return %2 : tensor<*xf64>
-  }) {function_type = (tensor<*xf64>, tensor<*xf64>) -> tensor<*xf64>, sym_name = "transpose_add"} : () -> ()
-  "toy.func"() ({
+  }
+  toy.func @main() {
     %0 = "toy.constant"() {value = dense<[[1.000000e+00, 2.000000e+00, 3.000000e+00], [4.000000e+00, 5.000000e+00, 6.000000e+00]]> : tensor<2x3xf64>} : () -> tensor<2x3xf64>
     %1 = toy.generic_call @transpose_add(%0, %0) : (tensor<2x3xf64>, tensor<2x3xf64>) -> tensor<*xf64>
     %2 = "toy.constant"() {value = dense<[1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00]> : tensor<6xf64>} : () -> tensor<6xf64>
@@ -154,7 +153,7 @@ def main() {
     %10 = "toy.mul"(%0, %3) : (tensor<2x3xf64>, tensor<2x3xf64>) -> tensor<*xf64>
     toy.print %10 : tensor<*xf64>
     toy.return
-  }) {function_type = () -> (), sym_name = "main"} : () -> ()
+  }
 }
 )");
 }

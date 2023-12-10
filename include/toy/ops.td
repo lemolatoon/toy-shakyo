@@ -127,6 +127,7 @@ def FuncOp : Toy_Op<"func", [
 		mlir::Region *getCallableRegion() { return &getBody(); }
 	}];
 
+	let hasCustomAssemblyFormat = 1;
 	let skipDefaultBuilders = 1;
 }
 
