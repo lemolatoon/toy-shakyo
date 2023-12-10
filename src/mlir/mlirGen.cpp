@@ -368,8 +368,8 @@ private:
     // specific shape, we emit a "reshape" operation. It will get optimized out
     // later as needed.
     if (!vardecl.getType().shape.empty()) {
-      emitError(loc(vardecl.loc()), "var decl with reshape unimplemented");
-      return nullptr;
+      value = builder.create<ReshapeOp>(loc(vardecl.loc()),
+                                        getType(vardecl.getType()), value);
     }
 
     // Register the value in the symbol table.
