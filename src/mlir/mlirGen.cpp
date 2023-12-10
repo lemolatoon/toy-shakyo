@@ -298,8 +298,13 @@ private:
     // Builtin calls have their custom operation, meaning this is a
     // straightforward emission.
     if (callee == "transpose") {
-      mlir::emitError(location, "builtin transpose unimplemented");
-      return nullptr;
+      if (call.getArgs().size() != 1) {
+        mlir::emitError(location,
+                        "MLIR codegen encountered an error: toy.transpose does "
+                        "not accept multiple arguments");
+        return nullptr;
+      }
+      return builder.create<TransposeOp>(location, operands[0]);
     }
 
     // Otherwise this is a call to a user-defined function. Calls to

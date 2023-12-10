@@ -267,4 +267,25 @@ def ReshapeOp : Toy_Op<"reshape"> {
 	}];
 }
 
+// TransposeOp
+
+def TransposeOp : Toy_Op<"transpose"> {
+	let summary = "transpose operation";
+
+	let arguments = (ins F64Tensor:$input);
+	let results = (outs F64Tensor);
+
+	let assemblyFormat = [{
+		`(` $input `:` type($input) `)` attr-dict `to` type(results)
+	}];
+
+	// Allow building a TransposeOp with from the input operand.
+	let builders = [
+		OpBuilder<(ins "mlir::Value":$input)>
+	];
+
+	// Invoke a static verify method to verify this transpose operation.
+	let hasVerifier = 1;
+}
+
 #endif // TOY_OPS

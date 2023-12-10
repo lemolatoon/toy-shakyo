@@ -147,3 +147,29 @@ void MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
   MulOp::build(builder, state, resultType, {lhs, rhs},
                mlir::ArrayRef<mlir::NamedAttribute>());
 }
+
+// TransposeOp
+
+void TransposeOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                        mlir::Value input) {
+  state.addTypes(mlir::UnrankedTensorType::get(builder.getF64Type()));
+  state.addOperands(input);
+}
+
+mlir::LogicalResult TransposeOp::verify() {
+  auto inputType =
+      mlir::dyn_cast<mlir::RankedTensorType>(getOperand().getType());
+  auto resultType = mlir::dyn_cast<mlir::RankedTensorType>(getType());
+
+  // どちらかが、UnrankedTensorTypeならば、OK
+  if (!inputType || !resultType)
+    return mlir::success();
+
+  auto inputShape = inputType.getShape();
+  if (!std::equal(inputShape.begin(), inputShape.end(),
+                  resultType.getShape().rbegin())) {
+    return emitError()
+           << "expected result shape to be a transpose of the input";
+  }
+  return mlir::success();
+}

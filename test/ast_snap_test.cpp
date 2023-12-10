@@ -103,13 +103,13 @@ def main() {
 
 TEST(MLIR, Snap) {
   std::string_view toySource = R"(
-def just_add(a, b) {
-  return a + b;
+def transpose_add(a, b) {
+  return transpose(a) + transpose(b);
 }
 
 def main() {
   var a = [[1, 2, 3], [4, 5, 6]];
-  var b = just_add(a, a);
+  var b = transpose_add(a, a);
   var c<2, 3> = [1, 2, 3, 4, 5, 6];
   print([[1, 1], [1, 2]]);
   print(1 + (2 + 3));
@@ -133,12 +133,14 @@ def main() {
   EXPECT_EQ(buf, R"(module {
   "toy.func"() ({
   ^bb0(%arg0: tensor<*xf64>, %arg1: tensor<*xf64>):
-    %0 = "toy.add"(%arg0, %arg1) : (tensor<*xf64>, tensor<*xf64>) -> tensor<*xf64>
-    toy.return %0 : tensor<*xf64>
-  }) {function_type = (tensor<*xf64>, tensor<*xf64>) -> tensor<*xf64>, sym_name = "just_add"} : () -> ()
+    %0 = toy.transpose(%arg0 : tensor<*xf64>) to tensor<*xf64>
+    %1 = toy.transpose(%arg1 : tensor<*xf64>) to tensor<*xf64>
+    %2 = "toy.add"(%0, %1) : (tensor<*xf64>, tensor<*xf64>) -> tensor<*xf64>
+    toy.return %2 : tensor<*xf64>
+  }) {function_type = (tensor<*xf64>, tensor<*xf64>) -> tensor<*xf64>, sym_name = "transpose_add"} : () -> ()
   "toy.func"() ({
     %0 = "toy.constant"() {value = dense<[[1.000000e+00, 2.000000e+00, 3.000000e+00], [4.000000e+00, 5.000000e+00, 6.000000e+00]]> : tensor<2x3xf64>} : () -> tensor<2x3xf64>
-    %1 = toy.generic_call @just_add(%0, %0) : (tensor<2x3xf64>, tensor<2x3xf64>) -> tensor<*xf64>
+    %1 = toy.generic_call @transpose_add(%0, %0) : (tensor<2x3xf64>, tensor<2x3xf64>) -> tensor<*xf64>
     %2 = "toy.constant"() {value = dense<[1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00]> : tensor<6xf64>} : () -> tensor<6xf64>
     %3 = toy.reshape(%2 : tensor<6xf64>) to tensor<2x3xf64>
     %4 = "toy.constant"() {value = dense<[[1.000000e+00, 1.000000e+00], [1.000000e+00, 2.000000e+00]]> : tensor<2x2xf64>} : () -> tensor<2x2xf64>
