@@ -7,6 +7,8 @@ add_executable(googleTest
   lexer_test.cpp
   parser_test.cpp
   ast_snap_test.cpp
+  rewrite_test.cpp
+  test_util.cpp
 )
 
 target_link_libraries(googleTest GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)

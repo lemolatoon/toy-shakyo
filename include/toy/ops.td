@@ -270,7 +270,7 @@ def ReshapeOp : Toy_Op<"reshape"> {
 
 // TransposeOp
 
-def TransposeOp : Toy_Op<"transpose"> {
+def TransposeOp : Toy_Op<"transpose", [Pure]> {
 	let summary = "transpose operation";
 
 	let arguments = (ins F64Tensor:$input);
@@ -287,6 +287,7 @@ def TransposeOp : Toy_Op<"transpose"> {
 
 	// Invoke a static verify method to verify this transpose operation.
 	let hasVerifier = 1;
+	let hasCanonicalizer = 1;
 }
 
 #endif // TOY_OPS

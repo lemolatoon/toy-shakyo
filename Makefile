@@ -22,6 +22,7 @@ gen: FORCE
 	$(MLIR_TBLGEN) -gen-dialect-defs include/toy/ops.td -I $(MLIR_INCLUDE_DIR) > include/toy/dialect.cpp.inc
 	$(MLIR_TBLGEN) -gen-op-decls include/toy/ops.td -I $(MLIR_INCLUDE_DIR) > include/toy/ops.h.inc
 	$(MLIR_TBLGEN) -gen-op-defs include/toy/ops.td -I $(MLIR_INCLUDE_DIR) > include/toy/ops.cpp.inc
+	$(MLIR_TBLGEN) -gen-rewriters src/mlir/toyCombine.td -I $(MLIR_INCLUDE_DIR) -I $(shell pwd)/include/ > src/mlir/toyCombine.cpp.inc
 
 # example: 
 #  make ARGS="sampels/smaple.toy --emit=ast" 
@@ -30,10 +31,11 @@ run: build
 	./build/src/a.out $(ARGS)
 
 SRC=samples/sample.toy
+ARG=-opt
 ast: build
-	./build/src/a.out $(SRC) --emit=ast
+	./build/src/a.out $(SRC) --emit=ast $(ARG)
 mlir: build
-	./build/src/a.out $(SRC) --emit=mlir
+	./build/src/a.out $(SRC) --emit=mlir $(ARG)
 
 test: build
 	./build/test/googleTest

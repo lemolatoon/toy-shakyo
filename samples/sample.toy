@@ -3,6 +3,10 @@ def multiply_transpose(a, b) {
   return transpose(a) * transpose(b);
 }
 
+def transpose2(a) {
+	return transpose(transpose(a));
+}
+
 def main() {
   # Define a variable `a` with shape <2, 3>, initialized with the literal value.
   var a = [[1, 2, 3], [4, 5, 6]];

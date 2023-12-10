@@ -6,7 +6,6 @@
 #include "toy/mlirGen.h"
 #include "toy/parser.h"
 #include "gtest/gtest.h"
-#include <llvm-16/llvm/Support/raw_ostream.h>
 
 TEST(AST, Snap) {
   std::string_view toySource = R"(
