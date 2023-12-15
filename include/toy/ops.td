@@ -246,7 +246,7 @@ def MulOp : Toy_Op<"mul"> {
 
 // ReshapeOp
 
-def ReshapeOp : Toy_Op<"reshape"> {
+def ReshapeOp : Toy_Op<"reshape", [Pure]> {
 	let summary = "tensor reshape operation";
 
 	let description = [{
@@ -266,6 +266,8 @@ def ReshapeOp : Toy_Op<"reshape"> {
 	let assemblyFormat = [{
 		`(` $input `:` type($input) `)` attr-dict `to` type(results)
 	}];
+
+	let hasCanonicalizer = 1;
 }
 
 // TransposeOp

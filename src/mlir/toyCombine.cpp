@@ -12,3 +12,8 @@ void toy::TransposeOp::getCanonicalizationPatterns(
     mlir::RewritePatternSet &results, mlir::MLIRContext *context) {
   results.add<TransposeTransposeOptPattern>(context);
 }
+
+void toy::ReshapeOp::getCanonicalizationPatterns(
+    mlir::RewritePatternSet &results, mlir::MLIRContext *context) {
+  results.add<ReshapeReshapeOptPattern>(context);
+}

@@ -10,7 +10,8 @@ def transpose2(a) {
 def main() {
   # Define a variable `a` with shape <2, 3>, initialized with the literal value.
   var a = [[1, 2, 3], [4, 5, 6]];
-  var b<2, 3> = [1, 2, 3, 4, 5, 6];
+  var a2<3, 2> = [1, 2, 3, 4, 5, 6];
+  var b<2, 3> = a2;
 
   # This call will specialize `multiply_transpose` with <2, 3> for both
   # arguments and deduce a return type of <3, 2> in initialization of `c`.
