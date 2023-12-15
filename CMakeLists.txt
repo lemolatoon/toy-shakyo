@@ -47,7 +47,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(my-cpp-project CXX C)
 
-find_package(LLVM REQUIRED CONFIG)
+# find_package(LLVM REQUIRED CONFIG)
 find_package(MLIR REQUIRED CONFIG)
 
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")

@@ -39,3 +39,22 @@ def reshape_reshape(a) {
 }
 )");
 }
+
+TEST(REWRITE, ReshapeConstantFold) {
+  std::string_view toySource = R"(
+def reshape_constant_fold() {
+  var b<2, 3> = [1, 2, 3, 4, 5, 6];
+  return b;
+} 
+)";
+  auto ir = toySource2mlir(toySource, true);
+  ASSERT_TRUE(ir.has_value());
+
+  EXPECT_EQ(ir.value(), R"(module {
+  toy.func @reshape_constant_fold() -> tensor<*xf64> {
+    %0 = "toy.constant"() {value = dense<[[1.000000e+00, 2.000000e+00, 3.000000e+00], [4.000000e+00, 5.000000e+00, 6.000000e+00]]> : tensor<2x3xf64>} : () -> tensor<2x3xf64>
+    toy.return %0 : tensor<2x3xf64>
+  }
+}
+)");
+}

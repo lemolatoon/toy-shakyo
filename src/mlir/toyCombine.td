@@ -26,4 +26,10 @@ def TransposeTransposeOptPattern : Pat<(TransposeOp(TransposeOp $arg)),
 def ReshapeReshapeOptPattern : Pat<(ReshapeOp(ReshapeOp $arg)),
 																		(ReshapeOp $arg)>;
 
+
+def ReshapeConstant : NativeCodeCall<"$0.reshape(llvm::cast<mlir::ShapedType>($1.getType()))">;
+// Reshape(Constant(x)) -> Constant(x.reshape)
+def ReshapeConstantFoldPattern : Pat<(ReshapeOp:$res (ConstantOp $arg)),
+																			(ConstantOp (ReshapeConstant $arg, $res))>;
+
 #endif // TOY_COMBINE

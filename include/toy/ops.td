@@ -27,7 +27,7 @@ class Toy_Op<string mnemonic, list<Trait> traits = []> :
 // Toy Operations
 
 // ConstantOp
-def ConstantOp : Toy_Op<"constant"> {
+def ConstantOp : Toy_Op<"constant", [Pure]> {
 
 	let summary = "constant operation";
 	let description = [{
