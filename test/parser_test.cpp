@@ -3,7 +3,6 @@
 #include "toy/parser.h"
 #include "llvm/Support/raw_ostream.h"
 #include "gtest/gtest.h"
-#include <llvm-16/llvm/Support/raw_ostream.h>
 
 TEST(Parser, Snapshot) {
   std::string_view toySource = R"(

@@ -27,7 +27,7 @@ class Toy_Op<string mnemonic, list<Trait> traits = []> :
 // Toy Operations
 
 // ConstantOp
-def ConstantOp : Toy_Op<"constant"> {
+def ConstantOp : Toy_Op<"constant", [Pure]> {
 
 	let summary = "constant operation";
 	let description = [{
@@ -246,7 +246,7 @@ def MulOp : Toy_Op<"mul"> {
 
 // ReshapeOp
 
-def ReshapeOp : Toy_Op<"reshape"> {
+def ReshapeOp : Toy_Op<"reshape", [Pure]> {
 	let summary = "tensor reshape operation";
 
 	let description = [{
@@ -266,11 +266,13 @@ def ReshapeOp : Toy_Op<"reshape"> {
 	let assemblyFormat = [{
 		`(` $input `:` type($input) `)` attr-dict `to` type(results)
 	}];
+
+	let hasCanonicalizer = 1;
 }
 
 // TransposeOp
 
-def TransposeOp : Toy_Op<"transpose"> {
+def TransposeOp : Toy_Op<"transpose", [Pure]> {
 	let summary = "transpose operation";
 
 	let arguments = (ins F64Tensor:$input);
@@ -287,6 +289,7 @@ def TransposeOp : Toy_Op<"transpose"> {
 
 	// Invoke a static verify method to verify this transpose operation.
 	let hasVerifier = 1;
+	let hasCanonicalizer = 1;
 }
 
 #endif // TOY_OPS

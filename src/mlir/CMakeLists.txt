@@ -1,6 +1,7 @@
 add_library(mlir STATIC
   dialect.cpp
   mlirGen.cpp
+  toyCombine.cpp
 )
 ##=== LLVM ===##
 include_directories(${LLVM_INCLUDE_DIRS})
