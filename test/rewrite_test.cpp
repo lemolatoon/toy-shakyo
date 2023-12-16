@@ -58,3 +58,31 @@ def reshape_constant_fold() {
 }
 )");
 }
+
+TEST(REWRITE, RedundantReshape) {
+  std::string_view toySource = R"(
+def main() {
+  # reshape constant fold====
+  var a<2, 1> = [1, 2];
+  var b<2, 1> = a;
+  # =========================
+  # reshape reshape, redundant reshape====
+  var c<2, 1> = b;
+  var d<2, 1> = c;
+  # ======================================
+  print(d);
+} 
+)";
+  auto ir = toySource2mlir(toySource, true);
+  ASSERT_TRUE(ir.has_value());
+
+  // TODO: with inlining, we can compose more appropriate example
+  EXPECT_EQ(ir.value(), R"(module {
+  toy.func @main() {
+    %0 = "toy.constant"() {value = dense<[[1.000000e+00], [2.000000e+00]]> : tensor<2x1xf64>} : () -> tensor<2x1xf64>
+    toy.print %0 : tensor<2x1xf64>
+    toy.return
+  }
+}
+)");
+}

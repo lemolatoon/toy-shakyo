@@ -26,10 +26,21 @@ def TransposeTransposeOptPattern : Pat<(TransposeOp(TransposeOp $arg)),
 def ReshapeReshapeOptPattern : Pat<(ReshapeOp(ReshapeOp $arg)),
 																		(ReshapeOp $arg)>;
 
+// Pattern Match and Rewrite with Native Code Call
 
 def ReshapeConstant : NativeCodeCall<"$0.reshape(llvm::cast<mlir::ShapedType>($1.getType()))">;
 // Reshape(Constant(x)) -> Constant(x.reshape)
 def ReshapeConstantFoldPattern : Pat<(ReshapeOp:$res (ConstantOp $arg)),
 																			(ConstantOp (ReshapeConstant $arg, $res))>;
+
+// Pattern Match and Rewrite with Constraints
+
+def TypesAreIdentical : Constraint<CPred<"$0.getType() == $1.getType()">>;
+// Reshape(x) = x, where input and output shapes are identical
+def RedundantReshapeOptPattern : Pat<
+	(ReshapeOp:$res $arg),
+	(replaceWithValue $arg),
+	[(TypesAreIdentical $arg, $res)]
+>;
 
 #endif // TOY_COMBINE
