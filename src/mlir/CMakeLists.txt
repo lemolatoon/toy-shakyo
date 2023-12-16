@@ -2,6 +2,7 @@ add_library(mlir STATIC
   dialect.cpp
   mlirGen.cpp
   toyCombine.cpp
+  shapeInferencePass.cpp
 )
 ##=== LLVM ===##
 include_directories(${LLVM_INCLUDE_DIRS})

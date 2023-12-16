@@ -1,23 +1,84 @@
 #include "toy/dialect.h"
+#include "toy/shapeInferenceInterface.h"
 
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/FunctionImplementation.h"
+#include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
+#include "mlir/Transforms/InliningUtils.h"
 #include "toy/dialect.cpp.inc"
+
 #define GET_OP_CLASSES
 #include "toy/ops.cpp.inc"
 
 using namespace toy;
+
+// ToyInlinerInterface
+
+/// This class defines the interface for handling inlining with Toy operations.
+struct ToyInlinerInterface : public mlir::DialectInlinerInterface {
+  using mlir::DialectInlinerInterface::DialectInlinerInterface;
+
+  // Analysis Hooks
+
+  /// All call operations within toy can be inlined.
+  bool isLegalToInline(mlir::Operation *call, mlir::Operation *callable,
+                       bool wouldBeCloned) const final {
+    return true;
+  }
+
+  /// All operations within toy can be inlined.
+  bool isLegalToInline(mlir::Operation *, mlir::Region *, bool,
+                       mlir::IRMapping &) const final {
+    return true;
+  }
+
+  /// All functions within toy can be inlined.
+  bool isLegalToInline(mlir::Region *, mlir::Region *, bool,
+                       mlir::IRMapping &) const final {
+    return true;
+  }
+
+  // Transformation Hooks
+
+  /// Handle the given inlined terminator(toy.return) by replacing it with a new
+  /// operation as necessary.
+  void handleTerminator(mlir::Operation *op,
+                        mlir::ArrayRef<mlir::Value> valuesToRepl) const final {
+    // Only "toy.return" needs to be handled here.
+    auto returnOp = mlir::cast<ReturnOp>(op);
+
+    // Replace the values directly with the return operands.
+    assert(returnOp.getNumOperands() == valuesToRepl.size());
+    for (const auto &it : llvm::enumerate(returnOp->getOperands())) {
+      valuesToRepl[it.index()].replaceAllUsesWith(it.value());
+    }
+  }
+
+  /// Attemps to materialize a conversion for a type mismatch between a call
+  /// from this dialect, and a callable region. This method should generate an
+  /// operation that takes 'input' as the only operand, and produces a single
+  /// result of 'ResultType. If a conversion can not be generated, nullptr
+  /// should be returned.
+  mlir::Operation *
+  materializeCallConversion(mlir::OpBuilder &builder, mlir::Value input,
+                            mlir::Type resultType,
+                            mlir::Location conversionLoc) const final {
+    return builder.create<CastOp>(conversionLoc, resultType, input);
+  }
+};
 
 void ToyDialect::initialize() {
   this->addOperations<
 #define GET_OP_LIST
 #include "toy/ops.cpp.inc"
       >();
+  addInterface<ToyInlinerInterface>();
 }
 
 //===----------------------------------------------------------------------===//
@@ -79,6 +140,12 @@ void AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
   // state.addOperands({lhs, rhs});
 }
 
+void AddOp::inferShapes() {
+  auto resultType = getLhs().getType();
+  auto res = getResult();
+  res.setType(resultType);
+}
+
 // FuncOp
 
 void FuncOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
@@ -88,6 +155,13 @@ void FuncOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
   // the state of our FuncOp, and create an entry block.
 
   buildWithEntryBlock(builder, state, name, type, attrs, type.getInputs());
+}
+
+// required by CallInterface
+
+mlir::Region *FuncOp::getCallableRegion() { return &getBody(); }
+mlir::ArrayRef<mlir::Type> FuncOp::getCallableResults() {
+  return getResultTypes();
 }
 
 mlir::ParseResult FuncOp::parse(mlir::OpAsmParser &parser,
@@ -165,6 +239,26 @@ void GenericCallOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                      mlir::SymbolRefAttr::get(builder.getContext(), callee));
 }
 
+// https://mlir.llvm.org/docs/Interfaces/#callinterfaces
+/// Return the callee of the generic call operation, this is required by the
+/// call interface.
+mlir::CallInterfaceCallable GenericCallOp::getCallableForCallee() {
+  // GenericCallOp::build()で、`callee`として登録しておいた名前
+  return (*this)->getAttrOfType<mlir::SymbolRefAttr>("callee");
+}
+
+/// Set the callee of the generic call operation, this is required by the call
+/// interface.
+// なぜか tableGen で宣言が生成されなかった。
+// void GenericCallOp::setCalleeFromCallable(mlir::CallInterfaceCallable callee)
+// {}
+
+/// Get the argument operands to the called function, this is required by the
+/// call interface.
+mlir::Operation::operand_range GenericCallOp::getArgOperands() {
+  return getInputs();
+}
+
 // MulOp
 
 void MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
@@ -174,12 +268,30 @@ void MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                mlir::ArrayRef<mlir::NamedAttribute>());
 }
 
+void MulOp::inferShapes() {
+  auto resultType = getLhs().getType();
+  auto res = getResult();
+  res.setType(resultType);
+}
+
 // TransposeOp
 
 void TransposeOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                         mlir::Value input) {
   state.addTypes(mlir::UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands(input);
+}
+
+void TransposeOp::inferShapes() {
+  auto resultType = mlir::cast<mlir::RankedTensorType>(getOperand().getType());
+  if (!resultType)
+    return;
+  mlir::SmallVector<int64_t, 2> transposedShape(
+      llvm::reverse(resultType.getShape()));
+  auto transposedType =
+      mlir::RankedTensorType::get(transposedShape, resultType.getElementType());
+  auto res = getResult();
+  res.setType(transposedType);
 }
 
 mlir::LogicalResult TransposeOp::verify() {
@@ -198,4 +310,26 @@ mlir::LogicalResult TransposeOp::verify() {
            << "expected result shape to be a transpose of the input";
   }
   return mlir::success();
+}
+
+// CastOp
+
+void CastOp::inferShapes() { getResult().setType(getInput().getType()); }
+
+bool CastOp::areCastCompatible(mlir::TypeRange inputs,
+                               mlir::TypeRange outputs) {
+  if (inputs.size() != 1 || outputs.size() != 1) {
+    return false;
+  }
+
+  // mlir::TensorTypeは、mlir::UnrankedTensorType、mlir::RankedTensorTypeの親クラス。
+  // The inputs must be Tensors with the same element type.
+  mlir::TensorType input = llvm::dyn_cast<mlir::TensorType>(inputs[0]);
+  mlir::TensorType output = llvm::dyn_cast<mlir::TensorType>(outputs[0]);
+  if (!input || !output || input.getElementType() != output.getElementType()) {
+    return false;
+  }
+
+  // The shape is required to match if both types are ranked.
+  return !input.hasRank() || !output.hasRank() || input == output;
 }
