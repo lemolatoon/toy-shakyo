@@ -187,6 +187,7 @@ struct ConstantOpLowering : public mlir::OpRewritePattern<toy::ConstantOp> {
         rewriter.create<mlir::AffineStoreOp>(
             loc, rewriter.create<mlir::arith::ConstantOp>(loc, *valueIt++),
             alloc, llvm::ArrayRef(indices));
+        return;
       }
 
       // Otherwise, iterate over the current dimension and add the indices to
