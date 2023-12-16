@@ -1,8 +1,13 @@
+#include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinDialect.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/DialectRegistry.h"
+#include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
+#include "mlir/Support/LLVM.h"
+#include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "toy/dialect.h"
 #include "toy/passes.h"
@@ -12,6 +17,128 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include <memory>
+
+// ToyToAffine RewritePatterns
+
+/// Convert the given RankedTensorType into the corresponding MemRefType.
+static mlir::MemRefType convertTensorToMemRef(mlir::RankedTensorType type) {
+  return mlir::MemRefType::get(type.getShape(), type.getElementType());
+}
+
+/// Insert an allocation and deallocation for the given MemRefType.
+static mlir::Value insertAllocAndDealloc(mlir::MemRefType type,
+                                         mlir::Location loc,
+                                         mlir::PatternRewriter &rewriter) {
+  auto alloc = rewriter.create<mlir::memref::AllocOp>(loc, type);
+
+  // Make sure to allocate at the beginning of the block.
+  auto *parentBlock = alloc->getBlock();
+  alloc->moveBefore(&parentBlock->front());
+
+  // Make sure to deallocate this alloc at the end of the block.
+  // This is fine as toy functions have no control flow.
+  auto dealloc = rewriter.create<mlir::memref::DeallocOp>(loc, alloc);
+  dealloc->moveBefore(&parentBlock->back());
+  return alloc;
+}
+
+/// This defines the function type used to process an iteration of a lowered
+/// loop. It takes as input an OpBuilder, an range of memRefOperands
+/// corresponding to the operands of the input operation, and the range of loop
+/// induction variables for iteration. It returns a value to store at the
+/// current index of iteration.
+using LoopIterationFn = mlir::function_ref<mlir::Value(
+    mlir::OpBuilder &rewriter, mlir::ValueRange memRefOperands,
+    mlir::ValueRange loopIvs)>;
+static void lowerOpToLoops(mlir::Operation *op, mlir::ValueRange operands,
+                           mlir::PatternRewriter &rewriter,
+                           LoopIterationFn processIteration) {
+  auto tensorType =
+      llvm::cast<mlir::RankedTensorType>((*op->result_type_begin()));
+  auto loc = op->getLoc();
+
+  // Insert an allocation and deallocation for the result of this operation.
+  auto memRefType = convertTensorToMemRef(tensorType);
+  auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
+
+  // Create a nest of affine loops, with one loop per dimension of the shape.
+  // The buildAffineLoopNest function takes a callback that is used to construct
+  // the body of the innermost loop given a builder, a location and a range of
+  // loop induction variables.
+  llvm::SmallVector<int64_t, 4> lowerBounds(tensorType.getRank(), /*Value=*/0);
+  llvm::SmallVector<int64_t, 4> steps(tensorType.getRank(), /*Value=*/1);
+  // N重for文を生成する。
+  // [[1, 2, 3], [4, 5, 6]]のような配列の場合。
+  // ```
+  // for (int i = 0; i < 2; i++) {
+  //   for (int j = 0; j < 3; j++) {
+  //     // do something
+  //   }
+  // }
+  // ```
+  // という感じになる。
+  // ivsはloop induction variablesの略。(i, j)のこと。
+  mlir::buildAffineLoopNest(
+      rewriter, loc, lowerBounds,
+      /*upperbound=*/tensorType.getShape(), steps,
+      [&](mlir::OpBuilder &nestedBuilder, mlir::Location loc,
+          mlir::ValueRange ivs) {
+        // Call the processing function with the rewriter,
+        // the memref operands, and the loop induction
+        // variables. This function will return the value
+        // to store at the current index.
+        auto valueToStore = processIteration(nestedBuilder, operands, ivs);
+        nestedBuilder.create<mlir::AffineStoreOp>(loc, valueToStore, alloc,
+                                                  ivs);
+      });
+  // Replace this operation with the generated alloc.
+  rewriter.replaceOp(op, alloc);
+}
+
+namespace {
+
+// ToyToAffine RewritePatterns: Binary operations
+template <typename BinaryOp, typename LoweredBinaryOp>
+struct BinaryOpLowering : public mlir::ConversionPattern {
+  BinaryOpLowering(mlir::MLIRContext *ctx)
+      : mlir::ConversionPattern(BinaryOp::getOperationName(), 1, ctx) {}
+
+  mlir::LogicalResult
+  matchAndRewrite(mlir::Operation *op, mlir::ArrayRef<mlir::Value> operands,
+                  mlir::ConversionPatternRewriter &rewriter) const final {
+    auto loc = op->getLoc();
+    lowerOpToLoops(
+        op, operands, rewriter,
+        [loc](mlir::OpBuilder &builder, mlir::ValueRange memRefOperands,
+              mlir::ValueRange loopIvs) {
+          // https://mlir.llvm.org/docs/DefiningDialects/Operations/#operand-adaptors
+          // Generate an adaptor for the remapped operands of the
+          // BinaryOp. This allows for using the nice named accessors
+          // that are generated by the ODS.
+          typename BinaryOp::Adaptor binaryAdaptor(memRefOperands);
+
+          // Generate loads for the element of 'lhs' and 'rhs' at the
+          // inner loop.
+          auto loadedLhs = builder.create<mlir::AffineLoadOp>(
+              loc, binaryAdaptor.getLhs(), loopIvs);
+
+          auto loadedRhs = builder.create<mlir::AffineLoadOp>(
+              loc, binaryAdaptor.getRhs(), loopIvs);
+
+          // Create the binary operation performed on the loaded
+          // values.
+          return builder.create<LoweredBinaryOp>(loc, loadedLhs, loadedRhs);
+        });
+
+    return mlir::success();
+  }
+};
+using AddOpLowering = BinaryOpLowering<toy::AddOp, mlir::arith::AddFOp>;
+using MulOpLowering = BinaryOpLowering<toy::MulOp, mlir::arith::MulFOp>;
+
+// ToyToAffine RewritePatterns : Constant operations
+
+} // namespace
 
 // ToyToAffineLoweringPass
 
@@ -60,7 +187,7 @@ void ToyToAffineLoweringPass::runOnOperation() {
   // the set of patterns that will lower the Toy operations.
   mlir::RewritePatternSet patterns(&getContext());
   // TODO: Add patterns here
-  // patterns.add<>(&getContext());
+  patterns.add<AddOpLowering, MulOpLowering>(&getContext());
 
   // With the target and rewrite patterns defined, we can now attempt the
   // conversion. The conversion will signal failure if any of our `illegal`
