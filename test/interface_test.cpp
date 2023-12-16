@@ -32,7 +32,7 @@ TEST(Interface, ShapeInference) {
 	def main() {
 		var a = [[1, 2, 3], [4, 5, 6]];
 		var b = transpose(a);
-		var c = a * b + [[100, 200], [300, 400], [500, 600]];
+		var c = b * b + [[100, 200], [300, 400], [500, 600]];
 		print(c);
 	}
 )";
@@ -43,10 +43,10 @@ TEST(Interface, ShapeInference) {
   toy.func @main() {
     %0 = "toy.constant"() {value = dense<[[1.000000e+00, 2.000000e+00, 3.000000e+00], [4.000000e+00, 5.000000e+00, 6.000000e+00]]> : tensor<2x3xf64>} : () -> tensor<2x3xf64>
     %1 = toy.transpose(%0 : tensor<2x3xf64>) to tensor<3x2xf64>
-    %2 = "toy.mul"(%0, %1) : (tensor<2x3xf64>, tensor<3x2xf64>) -> tensor<2x3xf64>
+    %2 = "toy.mul"(%1, %1) : (tensor<3x2xf64>, tensor<3x2xf64>) -> tensor<3x2xf64>
     %3 = "toy.constant"() {value = dense<[[1.000000e+02, 2.000000e+02], [3.000000e+02, 4.000000e+02], [5.000000e+02, 6.000000e+02]]> : tensor<3x2xf64>} : () -> tensor<3x2xf64>
-    %4 = "toy.add"(%2, %3) : (tensor<2x3xf64>, tensor<3x2xf64>) -> tensor<2x3xf64>
-    toy.print %4 : tensor<2x3xf64>
+    %4 = "toy.add"(%2, %3) : (tensor<3x2xf64>, tensor<3x2xf64>) -> tensor<3x2xf64>
+    toy.print %4 : tensor<3x2xf64>
     toy.return
   }
 }
