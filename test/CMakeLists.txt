@@ -8,6 +8,7 @@ add_executable(googleTest
   parser_test.cpp
   ast_snap_test.cpp
   rewrite_test.cpp
+  interface_test.cpp
   test_util.cpp
 )
 

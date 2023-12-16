@@ -5,6 +5,8 @@ include "mlir/IR/DialectBase.td"
 include "mlir/IR/OpBase.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/IR/FunctionInterfaces.td"
+include "mlir/Interfaces/CastInterfaces.td"
+include "mlir/Interfaces/CallInterfaces.td"
 // include "mlir/Interfaces/FunctionInterfaces.td"
 
 def Toy_Dialect : Dialect {
@@ -80,9 +82,12 @@ def AddOp : Toy_Op<"add"> {
 
 // FuncOp
 // traitをattachしている。
+// FunctionOpInterfaceが、CallableOpInterfaceの宣言をしている。
 // https://mlir.llvm.org/docs/Traits/
 def FuncOp : Toy_Op<"func", [
-	FunctionOpInterface, IsolatedFromAbove
+	FunctionOpInterface, 
+	IsolatedFromAbove,
+	DeclareOpInterfaceMethods<CallableOpInterface>,
 ]> {
 	let summary = "user defined function operation";
 	let description = [{
@@ -124,7 +129,6 @@ def FuncOp : Toy_Op<"func", [
 		/// Return the result types of this function.
 		mlir::ArrayRef<mlir::Type> getResultTypes() { return getFunctionType().getResults(); }
 
-		mlir::Region *getCallableRegion() { return &getBody(); }
 	}];
 
 	let hasCustomAssemblyFormat = 1;
@@ -190,7 +194,8 @@ def PrintOp : Toy_Op<"print"> {
 
 // GenericCallOp
 
-def GenericCallOp : Toy_Op<"generic_call"> {
+def GenericCallOp : Toy_Op<"generic_call",
+	[DeclareOpInterfaceMethods<CallOpInterface>]> {
 	let summary = "generic call operation";
 
 	let description = [{
@@ -290,6 +295,29 @@ def TransposeOp : Toy_Op<"transpose", [Pure]> {
 	// Invoke a static verify method to verify this transpose operation.
 	let hasVerifier = 1;
 	let hasCanonicalizer = 1;
+}
+
+// CastOp
+
+// CastOpInterfaceのareCastCompatibleを.cpp側で実装する必要がある。
+def CastOp : Toy_Op<"cast", [
+	DeclareOpInterfaceMethods<CastOpInterface>,
+	Pure,
+	SameOperandsAndResultShape
+]> {
+	let summary = "shape cast operation";
+	let description = [{
+		The "cast" operation converts a tensor from one type to an equivalent type
+		without changing any data elements. The source and destination types must
+		both be tensor types with the same element type. If both are ranked, then
+		shape is required to match. The operation is invalid if converting to a
+		mismatching constant dimension.
+	}];
+
+	let arguments = (ins F64Tensor:$input);
+	let results = (outs F64Tensor:$output);
+
+	let assemblyFormat = "$input attr-dict `:` type($input) `to` type($output)";
 }
 
 #endif // TOY_OPS

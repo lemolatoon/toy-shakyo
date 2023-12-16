@@ -5,7 +5,7 @@
 
 TEST(REWRITE, TransposeTranspose) {
   std::string_view toySource = R"(
-def transpose_transpose(a) {
+def main(a) {
 	return transpose(transpose(a));
 } 
 )";
@@ -13,7 +13,7 @@ def transpose_transpose(a) {
   ASSERT_TRUE(ir.has_value());
 
   EXPECT_EQ(ir.value(), R"(module {
-  toy.func @transpose_transpose(%arg0: tensor<*xf64>) -> tensor<*xf64> {
+  toy.func @main(%arg0: tensor<*xf64>) -> tensor<*xf64> {
     toy.return %arg0 : tensor<*xf64>
   }
 }
@@ -22,7 +22,7 @@ def transpose_transpose(a) {
 
 TEST(REWRITE, ReshapeReshape) {
   std::string_view toySource = R"(
-def reshape_reshape(a) {
+def main(a) {
   var b<2, 3> = a;
   var c<3, 2> = b;
   return c;
@@ -32,7 +32,7 @@ def reshape_reshape(a) {
   ASSERT_TRUE(ir.has_value());
 
   EXPECT_EQ(ir.value(), R"(module {
-  toy.func @reshape_reshape(%arg0: tensor<*xf64>) -> tensor<*xf64> {
+  toy.func @main(%arg0: tensor<*xf64>) -> tensor<*xf64> {
     %0 = toy.reshape(%arg0 : tensor<*xf64>) to tensor<3x2xf64>
     toy.return %0 : tensor<3x2xf64>
   }
@@ -42,7 +42,7 @@ def reshape_reshape(a) {
 
 TEST(REWRITE, ReshapeConstantFold) {
   std::string_view toySource = R"(
-def reshape_constant_fold() {
+def main() {
   var b<2, 3> = [1, 2, 3, 4, 5, 6];
   return b;
 } 
@@ -51,7 +51,7 @@ def reshape_constant_fold() {
   ASSERT_TRUE(ir.has_value());
 
   EXPECT_EQ(ir.value(), R"(module {
-  toy.func @reshape_constant_fold() -> tensor<*xf64> {
+  toy.func @main() -> tensor<*xf64> {
     %0 = "toy.constant"() {value = dense<[[1.000000e+00, 2.000000e+00, 3.000000e+00], [4.000000e+00, 5.000000e+00, 6.000000e+00]]> : tensor<2x3xf64>} : () -> tensor<2x3xf64>
     toy.return %0 : tensor<2x3xf64>
   }

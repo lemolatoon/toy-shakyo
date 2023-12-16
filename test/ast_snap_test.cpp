@@ -128,7 +128,7 @@ def main() {
   auto stream = llvm::raw_string_ostream{buf};
   moduleOp->print(stream);
   EXPECT_EQ(buf, R"(module {
-  toy.func @transpose_add(%arg0: tensor<*xf64>, %arg1: tensor<*xf64>) -> tensor<*xf64> {
+  toy.func private @transpose_add(%arg0: tensor<*xf64>, %arg1: tensor<*xf64>) -> tensor<*xf64> {
     %0 = toy.transpose(%arg0 : tensor<*xf64>) to tensor<*xf64>
     %1 = toy.transpose(%arg1 : tensor<*xf64>) to tensor<*xf64>
     %2 = "toy.add"(%0, %1) : (tensor<*xf64>, tensor<*xf64>) -> tensor<*xf64>

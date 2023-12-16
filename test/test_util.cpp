@@ -30,11 +30,10 @@ std::optional<std::string> toySource2mlir(std::string_view toySource,
     return std::nullopt;
   if (enableOpt) {
     mlir::PassManager pm(&context, moduleOp.get()->getName().getStringRef());
-    // Apply any generic pass manager command line options and run the pipeline.
-    mlir::applyPassManagerCLOptions(pm);
 
     // Add a run of the canonicalizer to optimize the mlir module.
     pm.addNestedPass<FuncOp>(mlir::createCanonicalizerPass());
+    pm.addPass(mlir::createInlinerPass());
     if (mlir::failed(pm.run(*moduleOp))) {
       llvm::errs() << "Failed to run canonicalizer\n";
       return std::nullopt;
