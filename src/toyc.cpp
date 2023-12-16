@@ -1,3 +1,6 @@
+#include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
+#include "mlir/Conversion/SCFToGPU/SCFToGPUPass.h"
+#include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Affine/Passes.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -173,6 +176,14 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
       optPM.addPass(mlir::createAffineScalarReplacementPass());
     }
   }
+
+  auto &gpuPM = pm.nest<mlir::func::FuncOp>();
+  // gpuPM.addPass(mlir::createLoopCoalescingPass());
+  gpuPM.addPass(mlir::createAffineParallelizePass());
+  // Affine to CFG
+  gpuPM.addPass(mlir::createLowerAffinePass());
+  gpuPM.addPass(mlir::createParallelLoopToGpuPass());
+  // gpuPM.addPass(mlir::createAffineForToGPUPass());
 
   if (isLoweringToLLVM) {
     // Finish lowering the toy IR to the LLVM dialect.
