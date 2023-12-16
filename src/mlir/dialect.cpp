@@ -1,4 +1,5 @@
 #include "toy/dialect.h"
+#include "toy/shapeInferenceInterface.h"
 
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
@@ -139,6 +140,12 @@ void AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
   // state.addOperands({lhs, rhs});
 }
 
+void AddOp::inferShapes() {
+  auto resultType = getLhs().getType();
+  auto res = getResult();
+  res.setType(resultType);
+}
+
 // FuncOp
 
 void FuncOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
@@ -149,6 +156,8 @@ void FuncOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 
   buildWithEntryBlock(builder, state, name, type, attrs, type.getInputs());
 }
+
+// required by CallInterface
 
 mlir::Region *FuncOp::getCallableRegion() { return &getBody(); }
 mlir::ArrayRef<mlir::Type> FuncOp::getCallableResults() {
@@ -259,12 +268,30 @@ void MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                mlir::ArrayRef<mlir::NamedAttribute>());
 }
 
+void MulOp::inferShapes() {
+  auto resultType = getLhs().getType();
+  auto res = getResult();
+  res.setType(resultType);
+}
+
 // TransposeOp
 
 void TransposeOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                         mlir::Value input) {
   state.addTypes(mlir::UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands(input);
+}
+
+void TransposeOp::inferShapes() {
+  auto resultType = mlir::cast<mlir::RankedTensorType>(getOperand().getType());
+  if (!resultType)
+    return;
+  mlir::SmallVector<int64_t, 2> transposedShape(
+      llvm::reverse(resultType.getShape()));
+  auto transposedType =
+      mlir::RankedTensorType::get(transposedShape, resultType.getElementType());
+  auto res = getResult();
+  res.setType(transposedType);
 }
 
 mlir::LogicalResult TransposeOp::verify() {
@@ -286,6 +313,8 @@ mlir::LogicalResult TransposeOp::verify() {
 }
 
 // CastOp
+
+void CastOp::inferShapes() { getResult().setType(getInput().getType()); }
 
 bool CastOp::areCastCompatible(mlir::TypeRange inputs,
                                mlir::TypeRange outputs) {

@@ -9,6 +9,8 @@ include "mlir/Interfaces/CastInterfaces.td"
 include "mlir/Interfaces/CallInterfaces.td"
 // include "mlir/Interfaces/FunctionInterfaces.td"
 
+include "toy/shapeInferenceInterface.td"
+
 def Toy_Dialect : Dialect {
 	let name = "toy";
 
@@ -63,7 +65,7 @@ def ConstantOp : Toy_Op<"constant", [Pure]> {
 }
 
 // AddOp
-def AddOp : Toy_Op<"add"> {
+def AddOp : Toy_Op<"add", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
 	let summary = "element-wise add operation";
 	let description = [{
 		The "add" operation performs element-wise addition between two tensors.
@@ -233,7 +235,7 @@ def GenericCallOp : Toy_Op<"generic_call",
 
 // MulOp
 
-def MulOp : Toy_Op<"mul"> {
+def MulOp : Toy_Op<"mul", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
 	let summary = "element-wise mul operation";
 	let description = [{
 		The "mul" operation performs element-wise multiplication between two
@@ -277,7 +279,7 @@ def ReshapeOp : Toy_Op<"reshape", [Pure]> {
 
 // TransposeOp
 
-def TransposeOp : Toy_Op<"transpose", [Pure]> {
+def TransposeOp : Toy_Op<"transpose", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
 	let summary = "transpose operation";
 
 	let arguments = (ins F64Tensor:$input);
@@ -302,6 +304,7 @@ def TransposeOp : Toy_Op<"transpose", [Pure]> {
 // CastOpInterfaceのareCastCompatibleを.cpp側で実装する必要がある。
 def CastOp : Toy_Op<"cast", [
 	DeclareOpInterfaceMethods<CastOpInterface>,
+	DeclareOpInterfaceMethods<ShapeInferenceOpInterface>,
 	Pure,
 	SameOperandsAndResultShape
 ]> {
