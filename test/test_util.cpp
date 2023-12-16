@@ -8,6 +8,7 @@
 #include "toy/lexer.h"
 #include "toy/mlirGen.h"
 #include "toy/parser.h"
+#include "toy/passes.h"
 
 #include "llvm/Support/raw_ostream.h"
 
@@ -30,14 +31,19 @@ std::optional<std::string> toySource2mlir(std::string_view toySource,
     return std::nullopt;
   if (enableOpt) {
     mlir::PassManager pm(&context, moduleOp.get()->getName().getStringRef());
+    // Apply any generic pass manager command line options and run the pipeline.
+    mlir::applyPassManagerCLOptions(pm);
 
-    // Add a run of the canonicalizer to optimize the mlir module.
-    pm.addNestedPass<FuncOp>(mlir::createCanonicalizerPass());
     pm.addPass(mlir::createInlinerPass());
-    if (mlir::failed(pm.run(*moduleOp))) {
-      llvm::errs() << "Failed to run canonicalizer\n";
+
+    // Now that there is only one function, we can infer the shapes of each of
+    // the operations. Add a run of the canonicalizer to optimize the mlir
+    // module.
+    mlir::OpPassManager &optPM = pm.nest<toy::FuncOp>();
+    optPM.addPass(toy::createShapeInferencePass());
+    optPM.addPass(mlir::createCanonicalizerPass());
+    if (mlir::failed(pm.run(*moduleOp)))
       return std::nullopt;
-    }
   }
   auto buf = std::string{};
   auto stream = llvm::raw_string_ostream{buf};
