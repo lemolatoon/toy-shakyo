@@ -47,6 +47,7 @@ std::optional<std::string> toySource2mlir(std::string_view toySource,
     mlir::OpPassManager &optPM = pm.nest<toy::FuncOp>();
     optPM.addPass(toy::createShapeInferencePass());
     optPM.addPass(mlir::createCanonicalizerPass());
+    optPM.addPass(mlir::createCSEPass());
   }
 
   if (lowerTo >= LowerTo::Affine) {
