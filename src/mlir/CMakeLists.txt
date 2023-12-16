@@ -3,6 +3,7 @@ add_library(mlir STATIC
   mlirGen.cpp
   toyCombine.cpp
   shapeInferencePass.cpp
+  lowerToAffineLoops.cpp
 )
 ##=== LLVM ===##
 include_directories(${LLVM_INCLUDE_DIRS})
