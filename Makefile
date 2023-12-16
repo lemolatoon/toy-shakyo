@@ -40,6 +40,8 @@ ast: build
 	./build/src/a.out $(SRC) --emit=ast $(ARG)
 mlir: build
 	./build/src/a.out $(SRC) --emit=mlir $(ARG)
+mlir-affine: build
+	./build/src/a.out $(SRC) --emit=mlir-affine $(ARG)
 
 test: build
 	./build/test/googleTest
