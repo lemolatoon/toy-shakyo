@@ -9,6 +9,7 @@ add_executable(googleTest
   ast_snap_test.cpp
   rewrite_test.cpp
   interface_test.cpp
+  lowering_test.cpp
   test_util.cpp
 )
 

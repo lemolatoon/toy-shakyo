@@ -2,5 +2,7 @@
 #include <optional>
 #include <string>
 
+enum LowerTo { Toy, Affine };
 std::optional<std::string> toySource2mlir(std::string_view toySource,
-                                          bool enableOpt = false);
+                                          bool enableOpt = false,
+                                          LowerTo lowerTo = LowerTo::Toy);
