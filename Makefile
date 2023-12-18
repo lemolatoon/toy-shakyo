@@ -42,6 +42,8 @@ mlir: build
 	./build/src/a.out $(SRC) --emit=mlir $(ARG)
 mlir-affine: build
 	./build/src/a.out $(SRC) --emit=mlir-affine $(ARG)
+mlir-llvm: build
+	./build/src/a.out $(SRC) --emit=mlir-llvm $(ARG)
 
 test: build
 	./build/test/googleTest
