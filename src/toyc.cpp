@@ -155,6 +155,8 @@ int dumpMLIR() {
     }
   }
 
+  pm.addPass(toy::createLowerToLLVMPass());
+
   if (mlir::failed(pm.run(*module)))
     return 4;
 
