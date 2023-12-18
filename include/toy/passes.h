@@ -16,6 +16,8 @@ std::unique_ptr<mlir::Pass> createLowerToAffinePass();
 
 std::unique_ptr<mlir::Pass> createLowerToLLVMPass();
 
+std::unique_ptr<mlir::Pass> createPutOutArithConstantPass();
+
 } // namespace toy
 
 #endif // TOY_PASSES_H

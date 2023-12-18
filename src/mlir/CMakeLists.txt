@@ -5,6 +5,7 @@ add_library(mlir STATIC
   shapeInferencePass.cpp
   lowerToAffineLoops.cpp
   lowerToLLVM.cpp
+  putOutArithConstantPass.cpp
 )
 ##=== LLVM ===##
 include_directories(${LLVM_INCLUDE_DIRS})

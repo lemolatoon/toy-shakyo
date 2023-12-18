@@ -67,6 +67,66 @@ TEST(LOWERING, ToyToAffine) {
 )");
 }
 
+TEST(Lowering, GPU) {
+  std::string_view toySource = R"(
+  def main() {
+    print([[[1]]] + [[[2]]]);
+  }
+)";
+  auto ir = toySource2mlir(toySource, true, LowerTo::Affine, true);
+  ASSERT_TRUE(ir.has_value());
+
+  EXPECT_EQ(ir.value(),
+            R"(#map = affine_map<(d0)[s0, s1] -> ((d0 - s0) ceildiv s1)>
+#map1 = affine_map<(d0)[s0, s1] -> (d0 * s0 + s1)>
+module {
+  func.func @main() {
+    %cst = arith.constant 2.000000e+00 : f64
+    %cst_0 = arith.constant 1.000000e+00 : f64
+    %alloc = memref.alloc() : memref<1x1x1xf64>
+    %alloc_1 = memref.alloc() : memref<1x1x1xf64>
+    %alloc_2 = memref.alloc() : memref<1x1x1xf64>
+    %c0 = arith.constant 0 : index
+    %c0_3 = arith.constant 0 : index
+    %c0_4 = arith.constant 0 : index
+    memref.store %cst_0, %alloc_2[%c0, %c0_3, %c0_4] : memref<1x1x1xf64>
+    %c0_5 = arith.constant 0 : index
+    %c0_6 = arith.constant 0 : index
+    %c0_7 = arith.constant 0 : index
+    memref.store %cst, %alloc_1[%c0_5, %c0_6, %c0_7] : memref<1x1x1xf64>
+    %c0_8 = arith.constant 0 : index
+    %c1 = arith.constant 1 : index
+    %c1_9 = arith.constant 1 : index
+    %c0_10 = arith.constant 0 : index
+    %c1_11 = arith.constant 1 : index
+    %c1_12 = arith.constant 1 : index
+    %c0_13 = arith.constant 0 : index
+    %c1_14 = arith.constant 1 : index
+    %c1_15 = arith.constant 1 : index
+    %c1_16 = arith.constant 1 : index
+    %0 = affine.apply #map(%c1)[%c0_8, %c1_9]
+    %1 = affine.apply #map(%c1_11)[%c0_10, %c1_12]
+    gpu.launch blocks(%arg0, %arg1, %arg2) in (%arg6 = %0, %arg7 = %c1_16, %arg8 = %c1_16) threads(%arg3, %arg4, %arg5) in (%arg9 = %1, %arg10 = %c1_16, %arg11 = %c1_16) {
+      %2 = affine.apply #map1(%arg0)[%c1_9, %c0_8]
+      %3 = affine.apply #map1(%arg3)[%c1_12, %c0_10]
+      scf.for %arg12 = %c0_13 to %c1_14 step %c1_15 {
+        %4 = memref.load %alloc_2[%2, %3, %arg12] : memref<1x1x1xf64>
+        %5 = memref.load %alloc_1[%2, %3, %arg12] : memref<1x1x1xf64>
+        %6 = arith.addf %4, %5 : f64
+        memref.store %6, %alloc[%2, %3, %arg12] : memref<1x1x1xf64>
+      }
+      gpu.terminator
+    } {SCFToGPU_visited}
+    toy.print %alloc : memref<1x1x1xf64>
+    memref.dealloc %alloc_2 : memref<1x1x1xf64>
+    memref.dealloc %alloc_1 : memref<1x1x1xf64>
+    memref.dealloc %alloc : memref<1x1x1xf64>
+    return
+  }
+}
+)");
+}
+
 TEST(Lowering, LLVM) {
   std::string_view toySource = R"(
   def main() {

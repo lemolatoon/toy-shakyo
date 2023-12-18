@@ -27,7 +27,8 @@ def main() {
 
   # Finally, calling into `multiply_transpose` with incompatible shapes
   # (<2, 3> and <3, 2>) will trigger a shape inference error.
-  var f = multiply_transpose(a, c);
+  # TODO: make sure to report error by toyc
+  # var f = multiply_transpose(a, c);
 
-  print(f);
+  print(e);
 }

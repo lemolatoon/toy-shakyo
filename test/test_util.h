@@ -5,4 +5,5 @@
 enum LowerTo { Toy, Affine, LLVM };
 std::optional<std::string> toySource2mlir(std::string_view toySource,
                                           bool enableOpt = false,
-                                          LowerTo lowerTo = LowerTo::Toy);
+                                          LowerTo lowerTo = LowerTo::Toy,
+                                          bool enableGPU = false);

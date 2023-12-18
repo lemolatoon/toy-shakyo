@@ -3,6 +3,7 @@
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Affine/Passes.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/GPU/Transforms/Passes.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LLVMIR/Transforms/Passes.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -77,6 +78,8 @@ static cl::opt<enum Action> emitAction(
     cl::values(clEnumValN(DumpLLVMIR, "llvm", "output the LLVM IR dump")));
 
 static cl::opt<bool> enableOpt("opt", cl::desc("Enable optimizations"));
+static cl::opt<bool> enableGpu("gpu",
+                               cl::desc("Enable using gpu(use gpu dialect)"));
 
 /// Returns a Toy AST resulting from parsing the file or a nullptr on
 /// error
@@ -177,13 +180,15 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
     }
   }
 
-  auto &gpuPM = pm.nest<mlir::func::FuncOp>();
-  // gpuPM.addPass(mlir::createLoopCoalescingPass());
-  gpuPM.addPass(mlir::createAffineParallelizePass());
-  // Affine to CFG
-  gpuPM.addPass(mlir::createLowerAffinePass());
-  gpuPM.addPass(mlir::createParallelLoopToGpuPass());
-  // gpuPM.addPass(mlir::createAffineForToGPUPass());
+  if (enableGpu) {
+    auto &gpuPM = pm.nest<mlir::func::FuncOp>();
+    gpuPM.addPass(mlir::createAffineParallelizePass());
+    // Affine to CFG
+    gpuPM.addPass(mlir::createLowerAffinePass());
+    gpuPM.addPass(mlir::createGpuMapParallelLoopsPass());
+    gpuPM.addPass(toy::createPutOutArithConstantPass());
+    gpuPM.addPass(mlir::createParallelLoopToGpuPass());
+  }
 
   if (isLoweringToLLVM) {
     // Finish lowering the toy IR to the LLVM dialect.
