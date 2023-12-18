@@ -65,6 +65,10 @@ std::optional<std::string> toySource2mlir(std::string_view toySource,
     }
   }
 
+  if (lowerTo >= LowerTo::LLVM) {
+    pm.addPass(toy::createLowerToLLVMPass());
+  }
+
   if (mlir::failed(pm.run(*moduleOp)))
     return std::nullopt;
 
