@@ -25,3 +25,17 @@ libmlir-16/unknown 1:16.0.6~++20230710042046+7cbf1a259152-1~exp1~20230710162136.
 mlir-16-tools/unknown 1:16.0.6~++20230710042046+7cbf1a259152-1~exp1~20230710162136.105 amd64
 $ sudo apt install libmlir-16-dev mlir-16-tools
 ```
+
+### buildする場合
+```
+cmake -G Ninja ../llvm \
+	-DLLVM_ENABLE_PROJECTS=mlir \
+	-DLLVM_BUILD_EXAMPLES=ON \
+	-DLLVM_TARGETS_TO_BUILD="Native;NVPTX;AMDGPU" \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DLLVM_ENABLE_ASSERTIONS=ON \
+	-DLLVM_ENABLE_LLD=ON \
+	-DMLIR_INCLUDE_INTEGRATION_TESTS=ON \
+	-DCMAKE_C_COMPILER=clang-16 -DCMAKE_CXX_COMPILER=clang++-16 \
+	-DCMAKE_INSTALL_PREFIX="/opt/llvm/16.0.6
+```

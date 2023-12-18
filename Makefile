@@ -7,8 +7,8 @@ INCLUDE=$(shell pwd)/include/
 
 LLVM_DIR=$(shell llvm-config-16 --prefix)
 MLIR_INCLUDE_DIR=$(LLVM_DIR)/include/
-LLVM_CMAKE_DIR=$(shell llvm-config-16 --cmakedir)
-MLIR_CMAKE_DIR=$(shell llvm-config-16 --prefix)/lib/cmake/mlir
+LLVM_CMAKE_DIR=$(LLVM_DIR)/lib/cmake/llvm
+MLIR_CMAKE_DIR=$(LLVM_DIR)/lib/cmake/mlir
 CMAKE_ARGS+=-DCMAKE_TOOLCHAIN_FILE=$(VCPKG_ROOT)/scripts/buildsystems/vcpkg.cmake \
 -DOVERWRITE_LLVM_DIR=$(LLVM_CMAKE_DIR) \
 -DOVERWRITE_MLIR_DIR=$(MLIR_CMAKE_DIR)

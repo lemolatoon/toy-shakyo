@@ -1,4 +1,6 @@
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
+#include "mlir/Conversion/GPUCommon/GPUCommonPass.h"
+#include "mlir/Conversion/GPUToNVVM/GPUToNVVMPass.h"
 #include "mlir/Conversion/SCFToGPU/SCFToGPUPass.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Affine/Passes.h"
@@ -39,6 +41,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/Host.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
@@ -188,11 +191,22 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
     gpuPM.addPass(mlir::createGpuMapParallelLoopsPass());
     gpuPM.addPass(toy::createPutOutArithConstantPass());
     gpuPM.addPass(mlir::createParallelLoopToGpuPass());
+    pm.addPass(mlir::createGpuKernelOutliningPass());
   }
 
   if (isLoweringToLLVM) {
+    if (enableGpu) {
+      // device code lowering
+      auto &gpuModulePM = pm.nest<mlir::gpu::GPUModuleOp>();
+      gpuModulePM.addPass(mlir::createLowerGpuOpsToNVVMOpsPass());
+      std::string triple = llvm::sys::getProcessTriple();
+      gpuModulePM.addPass(mlir::createGpuSerializeToCubinPass(std::move(triple),
+                                                              "chip", "feat"));
+      // host code lowering
+      // pm.addPass(mlir::createGpuToLLVMConversionPass());
+    }
     // Finish lowering the toy IR to the LLVM dialect.
-    pm.addPass(toy::createLowerToLLVMPass());
+    // pm.addPass(toy::createLowerToLLVMPass());
     // This is necessary to have line tables emitted and basic
     // debugger working. In the future it will be added proper debug information
     // emission directly from their frontend.
