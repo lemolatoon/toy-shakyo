@@ -1,6 +1,8 @@
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
+#include "mlir/Conversion/ArithToLLVM/ArithToLLVM.h"
 #include "mlir/Conversion/GPUCommon/GPUCommonPass.h"
 #include "mlir/Conversion/GPUToNVVM/GPUToNVVMPass.h"
+#include "mlir/Conversion/MemRefToLLVM/MemRefToLLVM.h"
 #include "mlir/Conversion/Passes.h"
 #include "mlir/Conversion/SCFToGPU/SCFToGPUPass.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
@@ -191,16 +193,22 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
   }
 
   if (enableGpu) {
+    pm.addPass(mlir::createArithToLLVMConversionPass());
+    pm.addPass(toy::createPrintOpLoweringPass());
+    pm.addPass(mlir::createMemRefToLLVMConversionPass());
     auto &gpuPM = pm.nest<mlir::func::FuncOp>();
     gpuPM.addPass(mlir::createAffineParallelizePass());
     // Affine to CFG
     gpuPM.addPass(mlir::createLowerAffinePass());
+    pm.addPass(mlir::createArithToLLVMConversionPass());
+    pm.addPass(mlir::createMemRefToLLVMConversionPass());
     gpuPM.addPass(mlir::createGpuMapParallelLoopsPass());
-    // gpuPM.addPass(toy::createPutOutArithConstantPass());
-    // gpuPM.addPass(mlir::createParallelLoopToGpuPass());
+    gpuPM.addPass(toy::createPutOutArithConstantPass());
+    gpuPM.addPass(mlir::createParallelLoopToGpuPass());
     // lower affine.map
-    // gpm.addPass(mlir::createLowerAffinePass());
-    // pm.addPass(mlir::createGpuKernelOutliningPass());
+    gpuPM.addPass(mlir::createLowerAffinePass());
+    gpuPM.addPass(toy::createReplaceWithIndexCastsPass());
+    pm.addPass(mlir::createGpuKernelOutliningPass());
   }
 
   if (isLoweringToLLVM) {
@@ -226,7 +234,7 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
     // Finish lowering the toy IR to the LLVM dialect.
     if (enableGpu) {
       // here we need to lower gpu_func's args to llvm
-      pm.addPass(toy::createLowerToLLVMWithGPUPass());
+      // pm.addPass(toy::createLowerToLLVMWithGPUPass());
       // pm.addPass(mlir::createGpuToLLVMConversionPass());
       // pm.addPass(mlir::createGpuToLLVMConversionPass());
       // pm.addPass(toy::createGpuEraseIndexArgPass());

@@ -170,6 +170,19 @@ private:
 } // namespace
 
 namespace {
+struct ToyPrintOpLoweringPass
+    : public mlir::PassWrapper<ToyPrintOpLoweringPass,
+                               mlir::OperationPass<mlir::ModuleOp>> {
+public:
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ToyPrintOpLoweringPass)
+  void getDependentDialects(mlir::DialectRegistry &registry) const override {
+    registry.insert<toy::ToyDialect>();
+  }
+
+private:
+  void runOnOperation() final;
+};
+
 struct ToyGPUToLLVMPass
     : public mlir::PassWrapper<ToyGPUToLLVMPass,
                                mlir::OperationPass<mlir::ModuleOp>> {
@@ -286,10 +299,31 @@ void ToyGPUToLLVMPass::runOnOperation() {
   }
 }
 
+void ToyPrintOpLoweringPass::runOnOperation() {
+  mlir::ModuleOp module = getOperation();
+
+  mlir::LLVMConversionTarget target(getContext());
+
+  target.addIllegalDialect<toy::ToyDialect>();
+  target.markUnknownOpDynamicallyLegal([](mlir::Operation *) { return true; });
+
+  mlir::RewritePatternSet patterns(&getContext());
+  patterns.add<PrintOpLowering>(&getContext());
+
+  if (mlir::failed(
+          mlir::applyPartialConversion(module, target, std::move(patterns)))) {
+    signalPassFailure();
+  }
+}
+
 std::unique_ptr<mlir::Pass> toy::createLowerToLLVMPass() {
   return std::make_unique<ToyToLLVMLoweringPass>();
 }
 
 std::unique_ptr<mlir::Pass> toy::createLowerToLLVMWithGPUPass() {
   return std::make_unique<ToyGPUToLLVMPass>();
+}
+
+std::unique_ptr<mlir::Pass> toy::createPrintOpLoweringPass() {
+  return std::make_unique<ToyPrintOpLoweringPass>();
 }

@@ -1,5 +1,11 @@
+#include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/Index/IR/IndexDialect.h"
+#include "mlir/Dialect/Index/IR/IndexOps.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/Pass/Pass.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
+#include "toy/passes.h"
 
 namespace {
 struct ReplaceIndexToI64Pattern
@@ -30,3 +36,62 @@ void populateReplaceIndexToI64(mlir::RewritePatternSet &patterns) {
 }
 
 } // namespace toy
+namespace {
+struct ReplaceWithIndexCastsPass
+    : public mlir::PassWrapper<ReplaceWithIndexCastsPass,
+                               mlir::OperationPass<mlir::func::FuncOp>> {
+public:
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ReplaceWithIndexCastsPass)
+private:
+  void getDependentDialects(mlir::DialectRegistry &registry) const override {
+    registry.insert<mlir::index::IndexDialect>();
+  }
+  void runOnOperation() final;
+
+private:
+  static mlir::LogicalResult replaceWithIndexCasts(
+      mlir::UnrealizedConversionCastOp unrealizedConversionCastOp) {
+
+    if (unrealizedConversionCastOp->getOperands().size() != 1 ||
+        unrealizedConversionCastOp->getResults().size() != 1)
+      return mlir::failure();
+
+    auto i64Type =
+        mlir::IntegerType::get(unrealizedConversionCastOp.getContext(), 64);
+    auto indexType =
+        mlir::IndexType::get(unrealizedConversionCastOp.getContext());
+    auto opTy = unrealizedConversionCastOp->getOperand(0).getType();
+    auto resTy = unrealizedConversionCastOp->getResult(0).getType();
+    auto ok1 = (opTy == indexType && resTy == i64Type);
+    auto ok2 = (opTy == i64Type && resTy == indexType);
+    if (!ok1 && !ok2)
+      return mlir::failure();
+    mlir::OpBuilder builder(unrealizedConversionCastOp);
+    auto castOp = builder.create<mlir::index::CastSOp>(
+        unrealizedConversionCastOp.getLoc(), i64Type,
+        unrealizedConversionCastOp->getOperand(0));
+    unrealizedConversionCastOp.replaceAllUsesWith(castOp);
+    llvm::errs() << "castOp: " << castOp << "\n";
+
+    return mlir::success();
+  }
+};
+} // namespace
+
+void ReplaceWithIndexCastsPass::runOnOperation() {
+  auto f = getOperation();
+
+  llvm::SmallPtrSet<mlir::Operation *, 16> opWorklist;
+  f.walk([&](mlir::Operation *op) {
+    if (op)
+      if (auto unrealizedConversionCastOp =
+              llvm::dyn_cast<mlir::UnrealizedConversionCastOp>(op)) {
+        if (mlir::failed(replaceWithIndexCasts(unrealizedConversionCastOp)))
+          return;
+      }
+  });
+}
+
+std::unique_ptr<mlir::Pass> toy::createReplaceWithIndexCastsPass() {
+  return std::make_unique<ReplaceWithIndexCastsPass>();
+}

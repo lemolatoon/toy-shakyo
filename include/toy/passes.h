@@ -22,6 +22,10 @@ std::unique_ptr<mlir::Pass> createPutOutArithConstantPass();
 
 std::unique_ptr<mlir::Pass> createGpuEraseIndexArgPass();
 
+std::unique_ptr<mlir::Pass> createPrintOpLoweringPass();
+
+std::unique_ptr<mlir::Pass> createReplaceWithIndexCastsPass();
+
 } // namespace toy
 
 #endif // TOY_PASSES_H
