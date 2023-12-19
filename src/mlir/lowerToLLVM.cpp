@@ -2,11 +2,14 @@
 #include "mlir/Conversion/ArithToLLVM/ArithToLLVM.h"
 #include "mlir/Conversion/ControlFlowToLLVM/ControlFlowToLLVM.h"
 #include "mlir/Conversion/FuncToLLVM/ConvertFuncToLLVM.h"
+#include "mlir/Conversion/GPUCommon/GPUCommonPass.h"
+#include "mlir/Conversion/IndexToLLVM/IndexToLLVM.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Conversion/MemRefToLLVM/MemRefToLLVM.h"
 #include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/GPU/IR/GPUDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
@@ -26,6 +29,7 @@
 
 #include "toy/dialect.h"
 #include "toy/passes.h"
+#include "toy/replaceIndexToI64.h"
 #include "llvm/Support/raw_ostream.h"
 #include <memory>
 
@@ -166,6 +170,19 @@ private:
 } // namespace
 
 namespace {
+struct ToyGPUToLLVMPass
+    : public mlir::PassWrapper<ToyGPUToLLVMPass,
+                               mlir::OperationPass<mlir::ModuleOp>> {
+public:
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ToyGPUToLLVMPass)
+  void getDependentDialects(mlir::DialectRegistry &registry) const override {
+    registry.insert<toy::ToyDialect>();
+  }
+
+private:
+  void runOnOperation() final;
+};
+
 struct ToyToLLVMLoweringPass
     : public mlir::PassWrapper<ToyToLLVMLoweringPass,
                                mlir::OperationPass<mlir::ModuleOp>> {
@@ -228,6 +245,51 @@ void ToyToLLVMLoweringPass::runOnOperation() {
   }
 }
 
+void ToyGPUToLLVMPass::runOnOperation() {
+  // The first thing to define is the conversion target. This will define
+  // the final target for this lowering. For this lowering, we are only
+  // targeting the LLVM dialect.
+  mlir::LLVMConversionTarget target(getContext());
+  target.addIllegalDialect<toy::ToyDialect>();
+  target.addLegalDialect<mlir::LLVM::LLVMDialect, mlir::gpu::GPUDialect>();
+
+  mlir::RewritePatternSet patterns(&getContext());
+  mlir::LLVMTypeConverter typeConverter(&getContext());
+
+  // affine -> std(scf)
+  mlir::populateAffineToStdConversionPatterns(patterns);
+  // scf -> cf
+  mlir::populateSCFToControlFlowConversionPatterns(patterns);
+
+  // arith -> llvm
+  mlir::arith::populateArithToLLVMConversionPatterns(typeConverter, patterns);
+
+  // memref->llvm
+  mlir::populateMemRefToLLVMConversionPatterns(typeConverter, patterns);
+  // cf -> llvm
+  mlir::cf::populateControlFlowToLLVMConversionPatterns(typeConverter,
+                                                        patterns);
+  // func -> llvm
+  mlir::populateFuncToLLVMConversionPatterns(typeConverter, patterns);
+
+  // gpu -> llvm
+  mlir::populateGpuToLLVMConversionPatterns(typeConverter, patterns);
+  toy::populateReplaceIndexToI64(patterns);
+
+  // The only remaining operation to lower from `toy` dialect, is the PrintOp.
+  patterns.add<PrintOpLowering>(&getContext());
+
+  auto module = getOperation();
+  if (mlir::failed(
+          mlir::applyPartialConversion(module, target, std::move(patterns)))) {
+    signalPassFailure();
+  }
+}
+
 std::unique_ptr<mlir::Pass> toy::createLowerToLLVMPass() {
   return std::make_unique<ToyToLLVMLoweringPass>();
+}
+
+std::unique_ptr<mlir::Pass> toy::createLowerToLLVMWithGPUPass() {
+  return std::make_unique<ToyGPUToLLVMPass>();
 }

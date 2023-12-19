@@ -16,7 +16,11 @@ std::unique_ptr<mlir::Pass> createLowerToAffinePass();
 
 std::unique_ptr<mlir::Pass> createLowerToLLVMPass();
 
+std::unique_ptr<mlir::Pass> createLowerToLLVMWithGPUPass();
+
 std::unique_ptr<mlir::Pass> createPutOutArithConstantPass();
+
+std::unique_ptr<mlir::Pass> createGpuEraseIndexArgPass();
 
 } // namespace toy
 

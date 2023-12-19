@@ -142,6 +142,9 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
                        mlir::OwningOpRef<mlir::ModuleOp> &module) {
   // Load our Dialect in this MLIR context
   context.getOrLoadDialect<toy::ToyDialect>();
+  mlir::registerGpuSerializeToCubinPass();
+  context.loadDialect<mlir::LLVM::LLVMDialect>();
+  mlir::registerLLVMDialectTranslation(context);
 
   llvm::SourceMgr sourceMgr;
   mlir::SourceMgrDiagnosticHandler sourceMgrHandler(sourceMgr, &context);
@@ -193,11 +196,11 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
     // Affine to CFG
     gpuPM.addPass(mlir::createLowerAffinePass());
     gpuPM.addPass(mlir::createGpuMapParallelLoopsPass());
-    gpuPM.addPass(toy::createPutOutArithConstantPass());
-    gpuPM.addPass(mlir::createParallelLoopToGpuPass());
-    pm.addPass(mlir::createGpuKernelOutliningPass());
+    // gpuPM.addPass(toy::createPutOutArithConstantPass());
+    // gpuPM.addPass(mlir::createParallelLoopToGpuPass());
     // lower affine.map
-    pm.addPass(mlir::createLowerAffinePass());
+    // gpm.addPass(mlir::createLowerAffinePass());
+    // pm.addPass(mlir::createGpuKernelOutliningPass());
   }
 
   if (isLoweringToLLVM) {
@@ -205,8 +208,6 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
       // device code lowering
       auto &gpuModulePM = pm.nest<mlir::gpu::GPUModuleOp>();
       gpuModulePM.addPass(mlir::createLowerGpuOpsToNVVMOpsPass());
-
-      // clean up
 
       std::string triple = "nvptx64-nvidia-cuda";
       std::string chip = "sm_75";
@@ -217,13 +218,22 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
       LLVMInitializeNVPTXAsmPrinter();
       // Turing Architecture
       // https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html
+      // device code lowering
       gpuModulePM.addPass(
           mlir::createGpuSerializeToCubinPass(triple, chip, features));
-      // host code lowering
-      pm.addPass(mlir::createGpuToLLVMConversionPass());
     }
+
     // Finish lowering the toy IR to the LLVM dialect.
-    pm.addPass(toy::createLowerToLLVMPass());
+    if (enableGpu) {
+      // here we need to lower gpu_func's args to llvm
+      pm.addPass(toy::createLowerToLLVMWithGPUPass());
+      // pm.addPass(mlir::createGpuToLLVMConversionPass());
+      // pm.addPass(mlir::createGpuToLLVMConversionPass());
+      // pm.addPass(toy::createGpuEraseIndexArgPass());
+    } else {
+      pm.addPass(toy::createLowerToLLVMPass());
+    }
+
     // This is necessary to have line tables emitted and basic
     // debugger working. In the future it will be added proper debug information
     // emission directly from their frontend.
@@ -289,6 +299,7 @@ int main(int argc, char **argv) {
   mlir::registerAsmPrinterCLOptions();
   mlir::registerMLIRContextCLOptions();
   mlir::registerPassManagerCLOptions();
+
   cl::ParseCommandLineOptions(argc, argv, "toy compiler\n");
   if (emitAction == Action::DumpAST) {
     return dumpAST();
