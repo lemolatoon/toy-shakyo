@@ -322,6 +322,9 @@ namespace {
 struct ToyToAffineLoweringPass
     : public mlir::PassWrapper<ToyToAffineLoweringPass,
                                mlir::OperationPass<mlir::ModuleOp>> {
+public:
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ToyToAffineLoweringPass)
+private:
   void getDependentDialects(mlir::DialectRegistry &registry) const override {
     registry.insert<mlir::AffineDialect, mlir::func::FuncDialect,
                     mlir::memref::MemRefDialect>();

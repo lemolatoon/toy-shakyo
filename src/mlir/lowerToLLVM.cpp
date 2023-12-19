@@ -169,6 +169,9 @@ namespace {
 struct ToyToLLVMLoweringPass
     : public mlir::PassWrapper<ToyToLLVMLoweringPass,
                                mlir::OperationPass<mlir::ModuleOp>> {
+public:
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ToyToLLVMLoweringPass)
+private:
   void getDependentDialects(mlir::DialectRegistry &registry) const override {
     registry.insert<mlir::LLVM::LLVMDialect, mlir::scf::SCFDialect>();
   }

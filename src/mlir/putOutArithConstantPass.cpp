@@ -14,6 +14,9 @@ namespace {
 struct PutOutArithConstantPass
     : public mlir::PassWrapper<PutOutArithConstantPass,
                                mlir::OperationPass<mlir::func::FuncOp>> {
+public:
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(PutOutArithConstantPass)
+private:
   void getDependentDialects(mlir::DialectRegistry &registry) const override {
     registry.insert<mlir::arith::ArithDialect, mlir::scf::SCFDialect>();
   }
