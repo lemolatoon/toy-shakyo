@@ -1,6 +1,7 @@
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/GPUCommon/GPUCommonPass.h"
 #include "mlir/Conversion/GPUToNVVM/GPUToNVVMPass.h"
+#include "mlir/Conversion/Passes.h"
 #include "mlir/Conversion/SCFToGPU/SCFToGPUPass.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Affine/Passes.h"
@@ -24,8 +25,11 @@
 #include "toy/lexer.h"
 #include "toy/mlirGen.h"
 #include "toy/parser.h"
+#include "llvm/MC/TargetRegistry.h"
+#include "llvm/TargetParser/Triple.h"
 #include <iostream>
-#include <memory>
+#include <llvm-16/llvm/Support/TargetSelect.h>
+#include <llvm-16/llvm/Support/raw_ostream.h>
 #include <vector>
 
 #include "mlir/IR/Diagnostics.h"
@@ -192,6 +196,8 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
     gpuPM.addPass(toy::createPutOutArithConstantPass());
     gpuPM.addPass(mlir::createParallelLoopToGpuPass());
     pm.addPass(mlir::createGpuKernelOutliningPass());
+    // lower affine.map
+    pm.addPass(mlir::createLowerAffinePass());
   }
 
   if (isLoweringToLLVM) {
@@ -199,14 +205,25 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
       // device code lowering
       auto &gpuModulePM = pm.nest<mlir::gpu::GPUModuleOp>();
       gpuModulePM.addPass(mlir::createLowerGpuOpsToNVVMOpsPass());
-      std::string triple = llvm::sys::getProcessTriple();
-      gpuModulePM.addPass(mlir::createGpuSerializeToCubinPass(std::move(triple),
-                                                              "chip", "feat"));
+
+      // clean up
+
+      std::string triple = "nvptx64-nvidia-cuda";
+      std::string chip = "sm_75";
+      std::string features = "+compute_75";
+      LLVMInitializeNVPTXTarget();
+      LLVMInitializeNVPTXTargetInfo();
+      LLVMInitializeNVPTXTargetMC();
+      LLVMInitializeNVPTXAsmPrinter();
+      // Turing Architecture
+      // https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html
+      gpuModulePM.addPass(
+          mlir::createGpuSerializeToCubinPass(triple, chip, features));
       // host code lowering
-      // pm.addPass(mlir::createGpuToLLVMConversionPass());
+      pm.addPass(mlir::createGpuToLLVMConversionPass());
     }
     // Finish lowering the toy IR to the LLVM dialect.
-    // pm.addPass(toy::createLowerToLLVMPass());
+    pm.addPass(toy::createLowerToLLVMPass());
     // This is necessary to have line tables emitted and basic
     // debugger working. In the future it will be added proper debug information
     // emission directly from their frontend.
@@ -238,6 +255,7 @@ int dumpAST() {
 int dumpLLVMIR(mlir::ModuleOp module) {
   // Register the translation to LLVM IR with the MLIR context.
   mlir::registerLLVMDialectTranslation(*module->getContext());
+  mlir::registerGpuSerializeToCubinPass();
   // Translate the module, that contains the LLVM dialect, to LLVM IR.
   // Use a fresh LLVM IR context. (Note that LLVM is not thread-safe and any
   // concurrent use of a context requires external locking.)
