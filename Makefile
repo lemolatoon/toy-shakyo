@@ -6,6 +6,8 @@ MLIR_TBLGEN=mlir-tblgen-16
 INCLUDE=$(shell pwd)/include/
 
 LLVM_DIR=$(shell llvm-config-16 --prefix)
+include .env
+
 MLIR_INCLUDE_DIR=$(LLVM_DIR)/include/
 LLVM_CMAKE_DIR=$(LLVM_DIR)/lib/cmake/llvm
 MLIR_CMAKE_DIR=$(LLVM_DIR)/lib/cmake/mlir

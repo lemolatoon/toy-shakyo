@@ -23,11 +23,13 @@ target_include_directories(googleTest PUBLIC ${PROJECT_SOURCE_DIR}/include)
 # external libraries
 
 ##=== LLVM ===##
-target_include_directories(googleTest PRIVATE ${LLVM_INCLUDE_DIRS})
+include_directories(${LLVM_INCLUDE_DIRS})
 target_link_directories(googleTest PRIVATE ${LLVM_LIBRARY_DIRS})
-target_link_libraries(googleTest LLVM-16)
+target_link_libraries(googleTest ${llvm_libs})
 
 ##=== MLIR ===##
-# linking with internal `mlir` target already links with `MLIR`
+include_directories(${MLIR_INCLUDE_DIRS})
+target_link_directories(googleTest PRIVATE ${MLIR_LIBRARY_DIRS})
+target_link_libraries(googleTest ${mlir_libs})
 
 enable_testing()

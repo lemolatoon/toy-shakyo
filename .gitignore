@@ -3,3 +3,4 @@
 /.cache
 /vcpkg_installed
 *.inc
+.env
