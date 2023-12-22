@@ -39,7 +39,7 @@ void populateReplaceIndexToI64(mlir::RewritePatternSet &patterns) {
 namespace {
 struct ReplaceWithIndexCastsPass
     : public mlir::PassWrapper<ReplaceWithIndexCastsPass,
-                               mlir::OperationPass<mlir::func::FuncOp>> {
+                               mlir::OperationPass<mlir::ModuleOp>> {
 public:
   MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ReplaceWithIndexCastsPass)
 private:
@@ -68,10 +68,9 @@ private:
       return mlir::failure();
     mlir::OpBuilder builder(unrealizedConversionCastOp);
     auto castOp = builder.create<mlir::index::CastSOp>(
-        unrealizedConversionCastOp.getLoc(), i64Type,
+        unrealizedConversionCastOp.getLoc(), resTy,
         unrealizedConversionCastOp->getOperand(0));
     unrealizedConversionCastOp.replaceAllUsesWith(castOp);
-    llvm::errs() << "castOp: " << castOp << "\n";
 
     return mlir::success();
   }
