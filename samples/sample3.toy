@@ -1,0 +1,28 @@
+# Toy言語において、すべての値はTensor。
+
+# ユーザ定義関数。Tensorのshapeはgenericになる。
+def multiply_transpose(a, b) {
+  # 組み込み関数transpose。Tensorを転置する。
+  return transpose(a) * transpose(b);
+}
+
+def main() {
+  # 変数`a`をshape <2, 3> で定義。リテラルで初期化。
+  var a = [[1, 2, 3], [4, 5, 6]];
+  # 変数宣言時にshapeを指定することで自動でreshapeする。
+  var b<2, 3> = [1, 2, 3, 4, 5, 6];
+
+  # この呼び出しで、`multiply_transpose`は <2, 3> で特殊化される。
+  # 戻り値の型は、<3, 2> と推論され、変数 `c` を初期化する。
+  var c = multiply_transpose(a, b);
+
+  # 二回目の <2, 3> で特殊化された`multiply_transpose`の呼び出し。
+  var d = multiply_transpose(b, a);
+
+  # <2, 3> ではなく、<3, 2> に対する`multiply_transpose`の呼び出し。
+  # 一つ前とは、別の特殊化を引き起こす。
+  var e = multiply_transpose(c, d);
+
+  # 組み込み関数`print`
+  print(e);
+}
