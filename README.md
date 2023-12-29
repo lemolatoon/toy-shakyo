@@ -1,7 +1,50 @@
-# cpp-template
+# toy-shakyo
 C++20環境を vcpkg + CMake + make (+ google test)で構築したい人向けのテンプレートリポジトリです。
 
 必要な環境構築やトラブルシューティングは[こちら](https://github.com/lemolatoon/cpp-json-parser#%E7%92%B0%E5%A2%83%E6%A7%8B%E7%AF%89)
+
+## 使いかた。
+.envにbuildしたLLVMをinstallしたディレクトリを書く。
+
+.envの例
+```.env
+LLVM_DIR=/opt/llvm/16.0.6/
+```
+toy-shakyoのbuild
+```bash
+# TableGenから.cppファイルと.hファイルを生成
+$ make gen
+# configure
+$ make configure
+# build
+$ make build
+```
+これで、`./build/toyc`と`./build/googleTest`の２つの実行バイナリができる。
+
+### toycの使い方
+```
+USAGE: toyc [options] <input toy file>
+```
+例
+```
+$ ./build/toyc samples/sample3.toy --emit=llvm -opt -gpu 2&> sample3.ir
+$ ./build/toyc --help
+```
+mlir標準で追加されているオプションがたくさんあるので、とりあえず`--emit=<value>`と、`-opt`と`-gpu`を使えば良い。
+
+### LLVM IRのコンパイルと実行
+`sample3.ir`にLLVM IRを出力した場合
+```bash
+# JITによる実行
+$ lli sample3.ir
+# 実行ファイルにして実行
+$ clang sample3.ir -o sample3
+$ ./sample3
+# gpuを使う場合。-L以降のパスは、LLVMをビルドしてインストールしたパスによって変わる。
+# clangは少なくともバージョン16は必要。
+$ clang-16 gpu.ll -lmlir_cuda_runtime -L/opt/llvm/16.0.6/lib -o sample3
+$ LD_LIBRARY_PATH=/opt/llvm/16.0.6/lib ./sample3
+```
 
 ## LLVMのinstall
 
