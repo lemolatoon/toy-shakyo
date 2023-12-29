@@ -247,7 +247,12 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
       pm.addPass(mlir::createCanonicalizerPass());
       pm.addPass(mlir::createConvertIndexToLLVMPass());
       pm.addPass(mlir::createCanonicalizerPass());
-      // pm.addPass(mlir::createGpuToLLVMConversionPass());
+
+      pm.addPass(mlir::createGpuToLLVMConversionPass());
+      pm.addPass(toy::createReplaceWithIndexCastsPass());
+      pm.addPass(mlir::createCanonicalizerPass());
+      pm.addPass(mlir::createConvertIndexToLLVMPass());
+      pm.addPass(mlir::createCanonicalizerPass());
       // pm.addPass(mlir::createGpuToLLVMConversionPass());
       // pm.addPass(toy::createGpuEraseIndexArgPass());
     } else {
