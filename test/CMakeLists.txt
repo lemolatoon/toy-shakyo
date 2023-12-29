@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 3.16)
 
 find_package(GTest CONFIG REQUIRED)
 
-add_executable(googleTest 
+target_sources(googleTest 
+  PRIVATE
   lexer_test.cpp
   parser_test.cpp
   ast_snap_test.cpp

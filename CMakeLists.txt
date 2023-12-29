@@ -89,6 +89,8 @@ foreach (_variableName ${_variableNames})
     message(STATUS "${_variableName}=${${_variableName}}")
 endforeach()
 
+add_executable(googleTest)
 add_subdirectory(test)
 add_subdirectory(include)
+add_executable(toyc)
 add_subdirectory(src)
