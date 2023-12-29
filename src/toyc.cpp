@@ -223,7 +223,7 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
 
       std::string triple = "nvptx64-nvidia-cuda";
       std::string chip = "sm_75";
-      std::string features = "+compute_75";
+      std::string features = "+ptx60";
       LLVMInitializeNVPTXTarget();
       LLVMInitializeNVPTXTargetInfo();
       LLVMInitializeNVPTXTargetMC();
