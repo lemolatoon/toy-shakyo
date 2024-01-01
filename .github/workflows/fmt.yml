@@ -24,6 +24,10 @@ jobs:
         run: |
           clang-format -version
 
+      - name: pseudo .env file
+        run: |
+          touch .env
+
       - name: Format check
         run: |
           make fmt
