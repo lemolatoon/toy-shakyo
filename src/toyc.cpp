@@ -31,8 +31,8 @@
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/TargetParser/Triple.h"
 #include <iostream>
-#include <llvm-16/llvm/Support/TargetSelect.h>
-#include <llvm-16/llvm/Support/raw_ostream.h>
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/raw_ostream.h"
 #include <vector>
 
 #include "mlir/IR/Diagnostics.h"

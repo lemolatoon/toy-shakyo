@@ -9,7 +9,7 @@
 #include "toy/passes.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/raw_ostream.h"
-#include <llvm-16/llvm/ADT/STLExtras.h>
+#include "llvm/ADT/STLExtras.h"
 #include <memory>
 
 namespace {

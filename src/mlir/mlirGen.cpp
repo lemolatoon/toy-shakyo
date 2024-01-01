@@ -16,7 +16,7 @@
 
 #include "llvm/ADT/ScopedHashTable.h"
 #include <functional>
-#include <llvm-16/llvm/ADT/ScopedHashTable.h>
+#include "llvm/ADT/ScopedHashTable.h"
 #include <numeric>
 
 namespace {
