@@ -4,15 +4,20 @@ add_library(mlir STATIC
   toyCombine.cpp
   shapeInferencePass.cpp
   lowerToAffineLoops.cpp
+  lowerToLLVM.cpp
+  putOutArithConstantPass.cpp
+  replaceIndexToI64.cpp
+  gpuEraseIndexArgPass.cpp
+  gpuMemoryAllocationPass.cpp
 )
 ##=== LLVM ===##
 include_directories(${LLVM_INCLUDE_DIRS})
 target_link_directories(mlir PRIVATE ${LLVM_LIBRARY_DIRS})
-target_link_libraries(mlir LLVM-16)
+target_link_libraries(mlir ${llvm_libs})
 
 ##=== MLIR ===##
 include_directories(${MLIR_INCLUDE_DIRS})
 target_link_directories(mlir PRIVATE ${MLIR_LIBRARY_DIRS})
-target_link_libraries(mlir MLIR)
+target_link_libraries(mlir ${mlir_libs})
 
 target_include_directories(mlir PUBLIC ${PROJECT_SOURCE_DIR}/include)

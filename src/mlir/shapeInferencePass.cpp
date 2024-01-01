@@ -1,5 +1,6 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Pass/Pass.h"
+#include "mlir/Support/TypeID.h"
 #include "toy/dialect.h"
 #include "toy/passes.h"
 #include "toy/shapeInferenceInterface.h"
@@ -29,6 +30,9 @@ namespace {
 class ShapeInferencePass
     : public mlir::PassWrapper<ShapeInferencePass,
                                mlir::OperationPass<FuncOp>> {
+public:
+  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ShapeInferencePass)
+private:
   void runOnOperation() override {
     FuncOp f = getOperation();
 

@@ -14,6 +14,18 @@ std::unique_ptr<mlir::Pass> createShapeInferencePass();
 /// for a subset of the Toy IR (e.g. matmul).
 std::unique_ptr<mlir::Pass> createLowerToAffinePass();
 
+std::unique_ptr<mlir::Pass> createLowerToLLVMPass();
+
+std::unique_ptr<mlir::Pass> createLowerToLLVMWithGPUPass();
+
+std::unique_ptr<mlir::Pass> createPutOutArithConstantPass();
+
+std::unique_ptr<mlir::Pass> createGpuEraseIndexArgPass();
+
+std::unique_ptr<mlir::Pass> createPrintOpLoweringPass();
+
+std::unique_ptr<mlir::Pass> createReplaceWithIndexCastsPass();
+std::unique_ptr<mlir::Pass> createGpuReplaceAllocationPass();
 } // namespace toy
 
 #endif // TOY_PASSES_H

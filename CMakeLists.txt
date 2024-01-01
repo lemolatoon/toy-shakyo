@@ -47,8 +47,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(my-cpp-project CXX C)
 
-# find_package(LLVM REQUIRED CONFIG)
 find_package(MLIR REQUIRED CONFIG)
+
+set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/bin)
+set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib)
+set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
 
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
@@ -56,6 +59,17 @@ include(TableGen)
 include(AddLLVM)
 include(AddMLIR)
 
+include_directories(${LLVM_INCLUDE_DIRS})
+include_directories(${MLIR_INCLUDE_DIRS})
+include_directories(${PROJECT_SOURCE_DIR}/include)
+link_directories(${LLVM_BUILD_LIBRARY_DIR})
+add_definitions(${LLVM_DEFINITIONS})
+
+set(llvm_libs LLVM)
+set(mlir_libs MLIR MLIRExecutionEngine)
+
+add_executable(googleTest)
 add_subdirectory(test)
 add_subdirectory(include)
+add_executable(toyc)
 add_subdirectory(src)

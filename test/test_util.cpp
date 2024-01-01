@@ -1,5 +1,8 @@
+#include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
+#include "mlir/Conversion/SCFToGPU/SCFToGPUPass.h"
 #include "mlir/Dialect/Affine/Passes.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/GPU/Transforms/Passes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Pass/PassManager.h"
@@ -19,7 +22,8 @@
 #include "gtest/gtest.h"
 
 std::optional<std::string> toySource2mlir(std::string_view toySource,
-                                          bool enableOpt, LowerTo lowerTo) {
+                                          bool enableOpt, LowerTo lowerTo,
+                                          bool enableGPU) {
   auto lexer = LexerBuffer(toySource.begin(), toySource.end(), "sample.toy");
   auto parser = Parser(lexer);
   auto moduleAST = parser.parseModule();
@@ -63,6 +67,20 @@ std::optional<std::string> toySource2mlir(std::string_view toySource,
       optPM.addPass(mlir::createLoopFusionPass());
       optPM.addPass(mlir::createAffineScalarReplacementPass());
     }
+  }
+
+  if (enableGPU) {
+    auto &gpuPM = pm.nest<mlir::func::FuncOp>();
+    gpuPM.addPass(mlir::createAffineParallelizePass());
+    // Affine to CFG
+    gpuPM.addPass(mlir::createLowerAffinePass());
+    gpuPM.addPass(mlir::createGpuMapParallelLoopsPass());
+    gpuPM.addPass(toy::createPutOutArithConstantPass());
+    gpuPM.addPass(mlir::createParallelLoopToGpuPass());
+  }
+
+  if (lowerTo >= LowerTo::LLVM) {
+    pm.addPass(toy::createLowerToLLVMPass());
   }
 
   if (mlir::failed(pm.run(*moduleOp)))

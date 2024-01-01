@@ -6,9 +6,11 @@ MLIR_TBLGEN=mlir-tblgen-16
 INCLUDE=$(shell pwd)/include/
 
 LLVM_DIR=$(shell llvm-config-16 --prefix)
+include .env
+
 MLIR_INCLUDE_DIR=$(LLVM_DIR)/include/
-LLVM_CMAKE_DIR=$(shell llvm-config-16 --cmakedir)
-MLIR_CMAKE_DIR=$(shell llvm-config-16 --prefix)/lib/cmake/mlir
+LLVM_CMAKE_DIR=$(LLVM_DIR)/lib/cmake/llvm
+MLIR_CMAKE_DIR=$(LLVM_DIR)/lib/cmake/mlir
 CMAKE_ARGS+=-DCMAKE_TOOLCHAIN_FILE=$(VCPKG_ROOT)/scripts/buildsystems/vcpkg.cmake \
 -DOVERWRITE_LLVM_DIR=$(LLVM_CMAKE_DIR) \
 -DOVERWRITE_MLIR_DIR=$(MLIR_CMAKE_DIR)
@@ -28,23 +30,29 @@ gen: FORCE
 	$(MLIR_TBLGEN) -gen-op-interface-decls include/toy/shapeInferenceInterface.td -I $(MLIR_INCLUDE_DIR) -I $(INCLUDE) > include/toy/shapeInferenceInterface.h.inc
 	$(MLIR_TBLGEN) -gen-op-interface-defs include/toy/shapeInferenceInterface.td -I $(MLIR_INCLUDE_DIR) -I $(INCLUDE) > include/toy/shapeInferenceInterface.cpp.inc
 
+TOYC=./build/toyc
+TEST=./build/googleTest
 # example: 
 #  make ARGS="sampels/smaple.toy --emit=ast" 
 #  make ARGS="sampels/smaple.toy --emit=mlir"
 run: build
-	./build/src/a.out $(ARGS)
+	$(TOYC) $(ARGS)
 
 SRC=samples/sample.toy
 ARG=-opt
 ast: build
-	./build/src/a.out $(SRC) --emit=ast $(ARG)
+	$(TOYC) $(SRC) --emit=ast $(ARG)
 mlir: build
-	./build/src/a.out $(SRC) --emit=mlir $(ARG)
+	$(TOYC) $(SRC) --emit=mlir $(ARG)
 mlir-affine: build
-	./build/src/a.out $(SRC) --emit=mlir-affine $(ARG)
+	$(TOYC) $(SRC) --emit=mlir-affine $(ARG)
+mlir-llvm: build
+	$(TOYC) $(SRC) --emit=mlir-llvm $(ARG)
+llvm: build
+	$(TOYC) $(SRC) --emit=llvm $(ARG)
 
 test: build
-	./build/test/googleTest
+	$(TEST)
 
 clean: FORCE
 	rm -rf build

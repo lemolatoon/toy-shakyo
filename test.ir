@@ -1,0 +1,4 @@
+ninja -C build
+ninja: Entering directory `build'
+ninja: no work to do.
+./build/src/a.out samples/sample.toy --emit=llvm -opt
