@@ -22,13 +22,15 @@ $ make build
 これで、`./build/toyc`と`./build/googleTest`の２つの実行バイナリができる。
 
 ### toycの使い方
-```
+```bash
 USAGE: toyc [options] <input toy file>
 ```
 例
-```
+```bash
 $ ./build/toyc samples/sample3.toy --emit=llvm -opt -gpu 2&> sample3.ir
 $ ./build/toyc --help
+# MLIR の遷移を見る
+$ ./build/toyc samples/sample3.toy --emit=llvm -opt -gpu --mlir-print-ir-after-all 2&> all.mlir
 ```
 mlir標準で追加されているオプションがたくさんあるので、とりあえず`--emit=<value>`と、`-opt`と`-gpu`を使えば良い。
 

@@ -8,6 +8,7 @@ add_library(mlir STATIC
   putOutArithConstantPass.cpp
   replaceIndexToI64.cpp
   gpuEraseIndexArgPass.cpp
+  gpuMemoryAllocationPass.cpp
 )
 ##=== LLVM ===##
 include_directories(${LLVM_INCLUDE_DIRS})

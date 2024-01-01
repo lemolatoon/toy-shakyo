@@ -29,10 +29,10 @@
 #include "toy/mlirGen.h"
 #include "toy/parser.h"
 #include "llvm/MC/TargetRegistry.h"
-#include "llvm/TargetParser/Triple.h"
-#include <iostream>
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/TargetParser/Triple.h"
+#include <iostream>
 #include <vector>
 
 #include "mlir/IR/Diagnostics.h"
@@ -194,20 +194,17 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
   }
 
   if (enableGpu) {
-    pm.addPass(mlir::createArithToLLVMConversionPass());
-    pm.addPass(toy::createPrintOpLoweringPass());
-    pm.addPass(mlir::createMemRefToLLVMConversionPass());
     auto &gpuPM = pm.nest<mlir::func::FuncOp>();
     gpuPM.addPass(mlir::createAffineParallelizePass());
-    // Affine to CFG
+    // Affine to CFG to Gpu
     gpuPM.addPass(mlir::createLowerAffinePass());
-    pm.addPass(mlir::createArithToLLVMConversionPass());
-    pm.addPass(mlir::createMemRefToLLVMConversionPass());
     gpuPM.addPass(mlir::createGpuMapParallelLoopsPass());
     gpuPM.addPass(toy::createPutOutArithConstantPass());
     gpuPM.addPass(mlir::createParallelLoopToGpuPass());
-    // lower affine.map
-    gpuPM.addPass(mlir::createLowerAffinePass());
+    // Gpu Transformation
+    // TODO: insert gpu.alloc and gpu.memcpy and gpu.dealloc
+    gpuPM.addPass(toy::createGpuReplaceAllocationPass());
+    pm.addPass(mlir::createMemRefToLLVMConversionPass());
     pm.addPass(toy::createReplaceWithIndexCastsPass());
     gpuPM.addPass(mlir::createCanonicalizerPass());
     pm.addPass(mlir::createGpuKernelOutliningPass());
@@ -242,6 +239,8 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
     // Finish lowering the toy IR to the LLVM dialect.
     if (enableGpu) {
       // here we need to lower gpu_func's args to llvm
+      pm.addNestedPass<mlir::func::FuncOp>(mlir::createGpuAsyncRegionPass());
+      pm.addPass(mlir::createMemRefToLLVMConversionPass());
       pm.addPass(toy::createLowerToLLVMWithGPUPass());
       pm.addPass(toy::createReplaceWithIndexCastsPass());
       pm.addPass(mlir::createCanonicalizerPass());
