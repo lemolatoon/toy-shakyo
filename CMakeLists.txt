@@ -47,7 +47,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(my-cpp-project CXX C)
 
-# find_package(LLVM REQUIRED CONFIG)
 find_package(MLIR REQUIRED CONFIG)
 
 set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/bin)
@@ -66,28 +65,8 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 link_directories(${LLVM_BUILD_LIBRARY_DIR})
 add_definitions(${LLVM_DEFINITIONS})
 
-# set(llvm_libs
-#     LLVMCore
-#     LLVMSupport
-# )
 set(llvm_libs LLVM)
-#get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
-#get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
-#get_property(translation_libs GLOBAL PROPERTY MLIR_TRANSLATION_LIBS)
-#set(mlir_libs
-#    ${dialect_libs}
-#    ${conversion_libs}
-#    MLIRIR
-#    MLIRParser
-#    MLIRPass
-#    MLIRRewrite
-#    MLIRSupport
-#    )
 set(mlir_libs MLIR MLIRExecutionEngine)
-get_cmake_property(_variableNames VARIABLES)
-foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
 
 add_executable(googleTest)
 add_subdirectory(test)
